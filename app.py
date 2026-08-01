@@ -162,7 +162,7 @@ def page_dashboard() -> None:
         len(orders[orders["estado"] != DELIVERED_STATE]) if not orders.empty else 0
     )
 
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4, c5 = st.columns(5, gap="small")
     c1.metric("Productos", len(products))
     c2.metric("Clientes", len(customers))
     c3.metric("Ingresos (COP)", format_cop(total_revenue))

@@ -2,8 +2,13 @@ CALIXTA_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@300;400;500&display=swap');
 
-html, body, [class*="css"] {
+html, body {
     font-family: 'Montserrat', sans-serif;
+    overflow-x: hidden;
+}
+
+.stApp {
+    overflow-x: hidden;
 }
 
 .main-header {
@@ -11,24 +16,25 @@ html, body, [class*="css"] {
     font-size: 2.4rem;
     font-weight: 600;
     color: #1A1A1A;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     margin-bottom: 0.2rem;
     text-transform: uppercase;
-    line-height: 1.15;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
 }
 
 .sub-header {
     color: #6B6560;
     font-weight: 300;
     margin-bottom: 1.5rem;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
     line-height: 1.5;
 }
 
 .brand-sidebar {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.8rem;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: #1A1A1A;
     margin-bottom: 0;
@@ -85,21 +91,20 @@ html, body, [class*="css"] {
 }
 
 [data-testid="stDataFrame"],
-[data-testid="stTable"],
-[data-testid="stDataFrame"] > div,
-.stDataFrame {
+[data-testid="stTable"] {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
+    max-width: 100%;
 }
 
-[data-testid="stVerticalBlock"] > div:has(> [data-testid="stDataFrame"]) {
-    overflow-x: auto;
+section[data-testid="stMain"] {
+    overflow-x: hidden;
 }
 
-.block-container {
+section[data-testid="stMain"] .block-container {
+    max-width: 100%;
     padding-top: 1.25rem;
     padding-bottom: 2rem;
-    max-width: 100%;
 }
 
 /* Tablet */
@@ -113,22 +118,43 @@ html, body, [class*="css"] {
     }
 
     div[data-testid="stHorizontalBlock"] {
-        gap: 0.75rem;
         flex-wrap: wrap !important;
+        gap: 0.75rem !important;
     }
 
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        flex: 1 1 calc(50% - 0.5rem) !important;
-        min-width: calc(50% - 0.5rem) !important;
-        width: calc(50% - 0.5rem) !important;
+        flex: 1 1 45% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        width: auto !important;
     }
 }
 
 /* Mobile */
 @media (max-width: 768px) {
+    [data-testid="stAppViewContainer"] {
+        overflow-x: hidden;
+    }
+
+    section[data-testid="stMain"] {
+        width: 100% !important;
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    section[data-testid="stMain"] > div.block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        padding-top: 3.25rem !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
     .main-header {
-        font-size: 1.65rem;
-        letter-spacing: 0.05em;
+        font-size: 1.55rem;
+        letter-spacing: 0.02em;
     }
 
     .sub-header {
@@ -138,30 +164,33 @@ html, body, [class*="css"] {
 
     .brand-sidebar {
         font-size: 1.45rem;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.06em;
     }
 
     .mobile-hint {
         display: block;
     }
 
-    .block-container {
-        padding-left: 0.85rem !important;
-        padding-right: 0.85rem !important;
-    }
-
     [data-testid="stMetricValue"] {
-        font-size: 1.25rem !important;
+        font-size: 1.2rem !important;
     }
 
     [data-testid="stMetricLabel"] {
         font-size: 0.78rem !important;
     }
 
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        flex: 1 1 100% !important;
-        min-width: 100% !important;
+    div[data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        gap: 0.5rem !important;
         width: 100% !important;
+    }
+
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        flex: none !important;
     }
 
     .stTabs [data-baseweb="tab"] {
@@ -184,20 +213,30 @@ html, body, [class*="css"] {
     [data-testid="stTextArea"] > div {
         font-size: 16px !important;
     }
+
+    .js-plotly-plot, .plot-container {
+        max-width: 100% !important;
+        overflow-x: auto !important;
+    }
 }
 
 /* Small phones */
 @media (max-width: 480px) {
     .main-header {
-        font-size: 1.4rem;
+        font-size: 1.35rem;
     }
 
     .sub-header {
         font-size: 0.88rem;
     }
 
+    section[data-testid="stMain"] > div.block-container {
+        padding-left: 0.85rem !important;
+        padding-right: 0.85rem !important;
+    }
+
     [data-testid="stSidebar"] {
-        min-width: min(88vw, 320px) !important;
+        min-width: min(88vw, 300px) !important;
     }
 
     .stButton > button {
