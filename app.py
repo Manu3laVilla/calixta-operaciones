@@ -30,13 +30,14 @@ from ui.cached_data import (
     load_products,
     load_sales,
 )
+from ui.charts import PLOTLY_CONFIG, style_chart
 from ui.styles import CALIXTA_CSS, format_cop
 
 st.set_page_config(
     page_title="Calixta | Centro de Operaciones",
     page_icon="✦",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 
 st.markdown(CALIXTA_CSS, unsafe_allow_html=True)
@@ -87,6 +88,10 @@ def sidebar() -> str:
     }
 
     choice = st.sidebar.radio("Menú", list(menu.keys()), label_visibility="collapsed")
+    st.sidebar.markdown(
+        '<p class="mobile-hint">En móvil, usa el menú ☰ arriba a la izquierda para navegar.</p>',
+        unsafe_allow_html=True,
+    )
     st.sidebar.divider()
     if st.sidebar.button("Actualizar datos", use_container_width=True):
         _refresh_and_rerun()
@@ -108,13 +113,13 @@ def _render_cart_editor(key: str, products: pd.DataFrame) -> list[dict]:
         return []
 
     options = {product_label(row.to_dict()): row["id"] for _, row in products.iterrows()}
-    c1, c2, c3 = st.columns([3, 1, 1])
-    with c1:
-        selected = c1.selectbox("Producto", list(options.keys()), key=f"{key}_product")
-    with c2:
-        qty = c2.number_input("Cantidad", min_value=1, step=1, key=f"{key}_qty")
-    with c3:
-        if c3.button("Agregar", key=f"{key}_add"):
+    selected = st.selectbox("Producto", list(options.keys()), key=f"{key}_product")
+    qty_col, btn_col = st.columns([2, 1])
+    with qty_col:
+        qty = st.number_input("Cantidad", min_value=1, step=1, key=f"{key}_qty")
+    with btn_col:
+        st.markdown("<div style='margin-top: 1.75rem;'></div>", unsafe_allow_html=True)
+        if st.button("Agregar", key=f"{key}_add", use_container_width=True):
             cart.append({"producto_id": options[selected], "cantidad": int(qty)})
             st.session_state[key] = cart
             st.rerun()
@@ -188,7 +193,8 @@ def page_dashboard() -> None:
                 paper_bgcolor="rgba(0,0,0,0)",
                 font_family="Montserrat",
             )
-            st.plotly_chart(fig, use_container_width=True)
+            style_chart(fig)
+            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
     with right:
         st.subheader("Pedidos por estado")
@@ -208,7 +214,8 @@ def page_dashboard() -> None:
                 paper_bgcolor="rgba(0,0,0,0)",
                 font_family="Montserrat",
             )
-            st.plotly_chart(fig, use_container_width=True)
+            style_chart(fig)
+            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
     bottom_left, bottom_right = st.columns(2)
 
@@ -237,7 +244,8 @@ def page_dashboard() -> None:
                 font_family="Montserrat",
                 yaxis={"categoryorder": "total ascending"},
             )
-            st.plotly_chart(fig, use_container_width=True)
+            style_chart(fig, height=380)
+            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
     with bottom_right:
         st.subheader("Ventas por categoría")
@@ -263,7 +271,8 @@ def page_dashboard() -> None:
                 paper_bgcolor="rgba(0,0,0,0)",
                 font_family="Montserrat",
             )
-            st.plotly_chart(fig, use_container_width=True)
+            style_chart(fig)
+            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
     if not alerts.empty:
         st.warning(f"{len(alerts)} producto(s) requieren reposición.")
