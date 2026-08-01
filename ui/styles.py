@@ -41,7 +41,8 @@ html, body {
 }
 
 .mobile-top-bar,
-.mobile-bottom-nav-anchor {
+#mobile-nav-anchor,
+#mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] {
     display: none;
 }
 
@@ -168,8 +169,8 @@ section[data-testid="stMain"] .block-container {
         border-bottom: 1px solid #E8E2D9;
     }
 
-    .mobile-bottom-nav-anchor {
-        display: block;
+    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
         position: fixed;
         bottom: 0;
         left: 0;
@@ -177,37 +178,23 @@ section[data-testid="stMain"] .block-container {
         z-index: 999999;
         background-color: #FAF8F5;
         border-top: 1px solid #E8E2D9;
-        padding: 0.3rem 0.15rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+        padding: 0.35rem 0.25rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
         box-shadow: 0 -4px 16px rgba(26, 26, 26, 0.08);
+        margin: 0 !important;
+        gap: 0.15rem !important;
     }
 
-    .mobile-bottom-nav-anchor [data-testid="stRadio"] {
-        margin: 0;
-    }
-
-    .mobile-bottom-nav-anchor [data-testid="stRadio"] > div {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        gap: 0.1rem;
-        width: 100%;
-    }
-
-    .mobile-bottom-nav-anchor [data-testid="stRadio"] label {
-        flex: 1 1 0;
-        min-width: 0;
-        text-align: center;
+    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] button {
+        min-height: 3.1rem !important;
+        height: auto !important;
+        padding: 0.35rem 0.1rem !important;
         font-size: 0.58rem !important;
         line-height: 1.15 !important;
-        white-space: pre-line;
-        padding: 0.3rem 0.05rem !important;
-        margin: 0 !important;
-        border-radius: 8px;
+        white-space: pre-line !important;
     }
 
-    .mobile-bottom-nav-anchor [data-testid="stRadio"] label[data-checked="true"] {
-        background-color: #F0EBE3;
-        font-weight: 500;
+    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] [data-testid="column"] {
+        min-width: 0 !important;
     }
 
     section[data-testid="stMain"] {

@@ -13,6 +13,8 @@ MENU_PAGES: list[tuple[str, str, str]] = [
     ("Alertas", "alertas", "!"),
 ]
 
+PAGE_IDS = [page_id for _, page_id, _ in MENU_PAGES]
+
 
 def _alert_count() -> int:
     try:
@@ -21,35 +23,43 @@ def _alert_count() -> int:
         return 0
 
 
-def _desktop_labels(alerts: int) -> list[str]:
-    labels: list[str] = []
-    for label, page_id, _ in MENU_PAGES:
-        if page_id == "dashboard":
-            labels.append("Dashboard")
-        elif page_id == "alertas":
-            labels.append(
-                f"Alertas de stock ({alerts})" if alerts > 0 else "Alertas de stock"
-            )
-        else:
-            labels.append(label)
-    return labels
+def _label_for_page(page_id: str, alerts: int) -> str:
+    for label, pid, _ in MENU_PAGES:
+        if pid != page_id:
+            continue
+        if pid == "dashboard":
+            return "Dashboard"
+        if pid == "alertas":
+            return f"Alertas de stock ({alerts})" if alerts > 0 else "Alertas de stock"
+        return label
+    return page_id
 
 
-def _mobile_labels(alerts: int) -> list[str]:
-    labels = []
-    for label, page_id, icon in MENU_PAGES:
+def _mobile_label_for_page(page_id: str, alerts: int) -> str:
+    for label, pid, icon in MENU_PAGES:
+        if pid != page_id:
+            continue
         text = label
-        if page_id == "alertas" and alerts > 0:
+        if pid == "alertas" and alerts > 0:
             text = f"{label} ({alerts})"
-        labels.append(f"{icon}\n{text}")
-    return labels
+        return f"{icon}\n{text}"
+    return page_id
 
 
-def _page_index(page_id: str) -> int:
-    for index, (_, pid, _) in enumerate(MENU_PAGES):
-        if pid == page_id:
-            return index
-    return 0
+def _render_mobile_nav(current_page: str, alerts: int) -> None:
+    st.markdown('<div id="mobile-nav-anchor"></div>', unsafe_allow_html=True)
+    cols = st.columns(len(MENU_PAGES))
+    for col, (label, page_id, icon) in zip(cols, MENU_PAGES):
+        with col:
+            selected = page_id == current_page
+            if st.button(
+                _mobile_label_for_page(page_id, alerts),
+                key=f"nav_btn_{page_id}",
+                use_container_width=True,
+                type="primary" if selected else "secondary",
+            ):
+                st.session_state.nav_page = page_id
+                st.rerun()
 
 
 def render_navigation() -> str:
@@ -58,21 +68,19 @@ def render_navigation() -> str:
     if "nav_page" not in st.session_state:
         st.session_state.nav_page = "dashboard"
 
-    current_idx = _page_index(st.session_state.nav_page)
-    desktop_labels = _desktop_labels(alerts)
-    mobile_labels = _mobile_labels(alerts)
+    if st.session_state.nav_page not in PAGE_IDS:
+        st.session_state.nav_page = "dashboard"
 
     st.sidebar.markdown('<p class="brand-sidebar">Calixta</p>', unsafe_allow_html=True)
     st.sidebar.caption("Centro de Operaciones")
 
-    sidebar_pick = st.sidebar.radio(
+    st.sidebar.radio(
         "Menú",
-        desktop_labels,
-        index=current_idx,
+        options=PAGE_IDS,
+        format_func=lambda page_id: _label_for_page(page_id, alerts),
+        key="nav_page",
         label_visibility="collapsed",
-        key="nav_sidebar_pick",
     )
-    sidebar_page = MENU_PAGES[desktop_labels.index(sidebar_pick)][1]
 
     st.sidebar.divider()
     if st.sidebar.button("Actualizar datos", use_container_width=True):
@@ -80,31 +88,12 @@ def render_navigation() -> str:
         st.rerun()
     st.sidebar.caption("Base de datos: Google Sheets")
 
+    current_page = st.session_state.nav_page
+
     st.markdown(
         '<div class="mobile-top-bar"><p class="mobile-brand">Calixta</p></div>',
         unsafe_allow_html=True,
     )
+    _render_mobile_nav(current_page, alerts)
 
-    st.markdown('<div class="mobile-bottom-nav-anchor">', unsafe_allow_html=True)
-    mobile_pick = st.radio(
-        "Navegación móvil",
-        mobile_labels,
-        index=current_idx,
-        horizontal=True,
-        label_visibility="collapsed",
-        key="nav_mobile_pick",
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-    mobile_page = MENU_PAGES[mobile_labels.index(mobile_pick)][1]
-
-    new_page = st.session_state.nav_page
-    if mobile_page != st.session_state.nav_page:
-        new_page = mobile_page
-    elif sidebar_page != st.session_state.nav_page:
-        new_page = sidebar_page
-
-    if new_page != st.session_state.nav_page:
-        st.session_state.nav_page = new_page
-        st.rerun()
-
-    return st.session_state.nav_page
+    return current_page
