@@ -52,25 +52,57 @@ class SheetsDB:
                 worksheet = self._spreadsheet.add_worksheet(
                     title=sheet_name, rows=1000, cols=len(headers)
                 )
-                worksheet.append_row(headers)
+                worksheet.update("A1", [headers], value_input_option="USER_ENTERED")
             else:
                 worksheet = self._spreadsheet.worksheet(sheet_name)
-                current = worksheet.row_values(1)
+                all_values = worksheet.get_all_values()
+                current = all_values[0] if all_values else []
+                current = [str(h).strip() for h in current if str(h).strip()]
+
                 if not current:
-                    worksheet.update("A1", [headers])
-                elif current != headers:
-                    missing = [h for h in headers if h not in current]
-                    if missing:
-                        worksheet.update("A1", [current + missing])
+                    worksheet.update("A1", [headers], value_input_option="USER_ENTERED")
+                elif current != headers and len(all_values) <= 1:
+                    worksheet.update("A1", [headers], value_input_option="USER_ENTERED")
 
     def get_worksheet(self, name: str) -> gspread.Worksheet:
         spreadsheet = self.connect()
         return spreadsheet.worksheet(name)
 
+    def _header_column_map(self, header_row: list[str], expected: list[str]) -> dict[str, int]:
+        col_map: dict[str, int] = {}
+        for index, header in enumerate(header_row):
+            name = str(header).strip()
+            if name and name not in col_map:
+                col_map[name] = index
+
+        for index, header in enumerate(expected):
+            if header not in col_map:
+                col_map[header] = index
+        return col_map
+
     def get_records(self, sheet_name: str) -> list[dict[str, Any]]:
         worksheet = self.get_worksheet(sheet_name)
-        records = worksheet.get_all_records()
-        return [dict(row) for row in records]
+        expected = SHEET_SCHEMAS[sheet_name]
+        values = worksheet.get_all_values()
+
+        if not values:
+            return []
+
+        header_row = [str(h).strip() for h in values[0]]
+        col_map = self._header_column_map(header_row, expected)
+        records: list[dict[str, Any]] = []
+
+        for row in values[1:]:
+            if not any(str(cell).strip() for cell in row):
+                continue
+
+            record: dict[str, Any] = {}
+            for header in expected:
+                index = col_map.get(header, -1)
+                record[header] = row[index] if 0 <= index < len(row) else ""
+            records.append(record)
+
+        return records
 
     def get_dataframe(self, sheet_name: str) -> pd.DataFrame:
         records = self.get_records(sheet_name)
