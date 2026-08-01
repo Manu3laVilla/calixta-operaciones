@@ -155,17 +155,6 @@ section[data-testid="stMain"] .block-container {
         margin-bottom: 0.25rem;
     }
 
-    .mobile-top-bar [data-testid="column"] {
-        display: flex;
-        align-items: center;
-    }
-
-    .mobile-top-bar button {
-        min-height: 2.25rem !important;
-        width: 2.25rem !important;
-        padding: 0 !important;
-    }
-
     .mobile-bottom-nav-anchor {
         display: block;
         position: fixed;

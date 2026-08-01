@@ -80,15 +80,10 @@ def render_navigation() -> str:
         st.rerun()
     st.sidebar.caption("Base de datos: Google Sheets")
 
-    st.markdown('<div class="mobile-top-bar">', unsafe_allow_html=True)
-    top_left, top_right = st.columns([5, 1])
-    with top_left:
-        st.markdown('<p class="mobile-brand">Calixta</p>', unsafe_allow_html=True)
-    with top_right:
-        if st.button("↻", key="mobile_refresh", help="Actualizar datos"):
-            clear_data_cache()
-            st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        '<div class="mobile-top-bar"><p class="mobile-brand">Calixta</p></div>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown('<div class="mobile-bottom-nav-anchor">', unsafe_allow_html=True)
     mobile_pick = st.radio(
