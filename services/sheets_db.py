@@ -5,14 +5,14 @@ import utils.ssl_fix  # noqa: F401
 import uuid
 from datetime import datetime
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
 import gspread
 import pandas as pd
 from google.oauth2.service_account import Credentials
 
-from config import CREDENTIALS_PATH, SHEET_SCHEMAS, SPREADSHEET_ID
+from config import SHEET_SCHEMAS, SPREADSHEET_ID
+from utils.settings import get_google_credentials
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -31,19 +31,12 @@ class SheetsDB:
 
         if not SPREADSHEET_ID:
             raise ValueError(
-                "Falta SPREADSHEET_ID en el archivo .env. "
-                "Copia .env.example a .env y configura tu hoja."
+                "Falta SPREADSHEET_ID. Configúralo en .env (local) "
+                "o en Streamlit Secrets (cloud)."
             )
 
-        creds_path = Path(CREDENTIALS_PATH)
-        if not creds_path.exists():
-            raise FileNotFoundError(
-                f"No se encontró el archivo de credenciales en: {creds_path}. "
-                "Sigue las instrucciones del README para crear el Service Account."
-            )
-
-        credentials = Credentials.from_service_account_file(
-            str(creds_path), scopes=SCOPES
+        credentials = Credentials.from_service_account_info(
+            get_google_credentials(), scopes=SCOPES
         )
         self._client = gspread.authorize(credentials)
         self._spreadsheet = self._client.open_by_key(SPREADSHEET_ID)
