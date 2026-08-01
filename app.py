@@ -9,29 +9,27 @@ import plotly.express as px
 import streamlit as st
 
 from config import ALERT_EMAIL_TO, CATEGORIES, DELIVERED_STATE, ORDER_STATES, SIZES
-from services.alert_service import (
-    count_low_stock,
-    get_low_stock_alerts,
-    notify_low_stock_by_email,
-)
+from services.alert_service import notify_low_stock_by_email
 from services.email_service import is_email_configured
-from services.customer_service import create_customer, list_customers, update_customer
+from services.customer_service import create_customer, update_customer
 from services.order_service import (
     create_order,
     delete_order,
-    get_order_items,
-    list_orders,
     update_order,
     update_order_status,
 )
-from services.product_service import (
-    create_product,
-    list_products,
-    product_label,
-    update_product,
-)
-from services.sale_service import list_sales
+from services.product_service import create_product, product_label, update_product
 from services.sheets_db import get_db
+from ui.cached_data import (
+    clear_data_cache,
+    filter_sales,
+    get_order_items_cached,
+    load_customers,
+    load_low_stock_alerts,
+    load_orders,
+    load_products,
+    load_sales,
+)
 from ui.styles import CALIXTA_CSS, format_cop
 
 st.set_page_config(
@@ -64,13 +62,18 @@ def page_header(title: str, subtitle: str) -> None:
     st.markdown(f'<p class="sub-header">{subtitle}</p>', unsafe_allow_html=True)
 
 
+def _refresh_and_rerun() -> None:
+    clear_data_cache()
+    st.rerun()
+
+
 def sidebar() -> str:
     st.sidebar.markdown('<p class="brand-sidebar">Calixta</p>', unsafe_allow_html=True)
     st.sidebar.caption("Centro de Operaciones")
 
     alerts = 0
     try:
-        alerts = count_low_stock()
+        alerts = len(load_low_stock_alerts())
     except Exception:
         pass
 
@@ -85,6 +88,8 @@ def sidebar() -> str:
 
     choice = st.sidebar.radio("Menú", list(menu.keys()), label_visibility="collapsed")
     st.sidebar.divider()
+    if st.sidebar.button("Actualizar datos", use_container_width=True):
+        _refresh_and_rerun()
     st.sidebar.caption("Base de datos: Google Sheets")
     return menu[choice]
 
@@ -141,11 +146,11 @@ def _render_cart_editor(key: str, products: pd.DataFrame) -> list[dict]:
 def page_dashboard() -> None:
     page_header("Dashboard", "Resumen del negocio Calixta")
 
-    products = list_products()
-    customers = list_customers()
-    sales = list_sales()
-    orders = list_orders()
-    alerts = get_low_stock_alerts()
+    products = load_products()
+    customers = load_customers()
+    sales = load_sales()
+    orders = load_orders()
+    alerts = load_low_stock_alerts()
 
     total_revenue = float(sales["subtotal"].sum()) if not sales.empty else 0.0
     pending_orders = (
@@ -278,7 +283,7 @@ def page_products() -> None:
     tab_list, tab_new, tab_edit = st.tabs(["Inventario", "Nuevo producto", "Editar producto"])
 
     with tab_list:
-        products = list_products()
+        products = load_products()
         if products.empty:
             st.info("No hay productos registrados.")
         else:
@@ -311,10 +316,10 @@ def page_products() -> None:
                         descripcion, stock, stock_minimo, precio,
                     )
                     st.success(f"Producto creado: {product['nombre']} ({product['id']})")
-                    st.rerun()
+                    _refresh_and_rerun()
 
     with tab_edit:
-        products = list_products()
+        products = load_products()
         if products.empty:
             st.info("Primero registra productos.")
         else:
@@ -371,7 +376,7 @@ def page_products() -> None:
                         },
                     )
                     st.success("Producto actualizado.")
-                    st.rerun()
+                    _refresh_and_rerun()
 
 
 def page_customers() -> None:
@@ -380,7 +385,7 @@ def page_customers() -> None:
     tab_list, tab_new, tab_edit = st.tabs(["Listado", "Nuevo cliente", "Editar cliente"])
 
     with tab_list:
-        customers = list_customers()
+        customers = load_customers()
         if customers.empty:
             st.info("No hay clientes registrados.")
         else:
@@ -401,10 +406,10 @@ def page_customers() -> None:
                 else:
                     customer = create_customer(nombre, email, telefono, direccion, notas)
                     st.success(f"Cliente creado: {customer['nombre']} ({customer['id']})")
-                    st.rerun()
+                    _refresh_and_rerun()
 
     with tab_edit:
-        customers = list_customers()
+        customers = load_customers()
         if customers.empty:
             st.info("Primero registra clientes.")
         else:
@@ -435,7 +440,7 @@ def page_customers() -> None:
                         },
                     )
                     st.success("Cliente actualizado.")
-                    st.rerun()
+                    _refresh_and_rerun()
 
 
 def page_orders() -> None:
@@ -446,7 +451,7 @@ def page_orders() -> None:
     )
 
     with tab_list:
-        orders = list_orders()
+        orders = load_orders()
         if orders.empty:
             st.info("No hay pedidos registrados.")
         else:
@@ -456,8 +461,8 @@ def page_orders() -> None:
             st.dataframe(display, use_container_width=True, hide_index=True)
 
     with tab_new:
-        customers = list_customers()
-        products = list_products(active_only=True)
+        customers = load_customers()
+        products = load_products(active_only=True)
 
         if customers.empty:
             st.warning("Registra al menos un cliente.")
@@ -487,15 +492,15 @@ def page_orders() -> None:
                         st.success(
                             f"Pedido {order['id']} creado — Total {format_cop(order['total'])}"
                         )
-                        st.rerun()
+                        _refresh_and_rerun()
                     except Exception as exc:
                         st.error(str(exc))
 
     with tab_edit:
-        orders = list_orders()
+        orders = load_orders()
         editable = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
-        products = list_products(active_only=True)
-        customers = list_customers()
+        products = load_products(active_only=True)
+        customers = load_customers()
 
         if editable.empty:
             st.info("No hay pedidos editables (los entregados no se pueden modificar).")
@@ -527,7 +532,7 @@ def page_orders() -> None:
             if "edit_order_cart" not in st.session_state or st.session_state.get("edit_order_loaded") != order_id:
                 st.session_state["edit_order_cart"] = [
                     {"producto_id": i["producto_id"], "cantidad": i["cantidad"]}
-                    for i in get_order_items(order_id)
+                    for i in get_order_items_cached(order_id)
                 ]
                 st.session_state["edit_order_loaded"] = order_id
 
@@ -541,12 +546,12 @@ def page_orders() -> None:
                         order_id, cliente_id, cliente_nombre, cart, direccion, notas
                     )
                     st.success(f"Pedido {order_id} actualizado.")
-                    st.rerun()
+                    _refresh_and_rerun()
                 except Exception as exc:
                     st.error(str(exc))
 
     with tab_status:
-        orders = list_orders()
+        orders = load_orders()
         pending = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
 
         if pending.empty:
@@ -558,7 +563,7 @@ def page_orders() -> None:
             }
             selected = st.selectbox("Selecciona pedido", list(options.keys()), key="status_order_sel")
             order_id = options[selected]
-            items = get_order_items(order_id)
+            items = get_order_items_cached(order_id)
 
             if items:
                 st.dataframe(pd.DataFrame(items), use_container_width=True, hide_index=True)
@@ -578,12 +583,12 @@ def page_orders() -> None:
                 try:
                     update_order_status(order_id, new_status, fecha_entrega)
                     st.success(f"Pedido {order_id} → {new_status}")
-                    st.rerun()
+                    _refresh_and_rerun()
                 except Exception as exc:
                     st.error(str(exc))
 
     with tab_delete:
-        orders = list_orders()
+        orders = load_orders()
         deletable = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
 
         if deletable.empty:
@@ -601,7 +606,7 @@ def page_orders() -> None:
                 try:
                     delete_order(order_id)
                     st.success(f"Pedido {order_id} eliminado.")
-                    st.rerun()
+                    _refresh_and_rerun()
                 except Exception as exc:
                     st.error(str(exc))
 
@@ -610,9 +615,9 @@ def page_sales() -> None:
     page_header("Ventas", "Historial generado automáticamente al entregar pedidos")
     st.caption("Las ventas se crean al marcar un pedido como Entregado. No se pueden crear ni editar manualmente.")
 
-    sales = list_sales()
-    customers = list_customers()
-    products = list_products()
+    sales = load_sales()
+    customers = load_customers()
+    products = load_products()
 
     with st.expander("Filtros", expanded=True):
         c1, c2, c3 = st.columns(3)
@@ -642,7 +647,8 @@ def page_sales() -> None:
         if not match.empty:
             producto_id = match.iloc[0]["id"]
 
-    filtered = list_sales(
+    filtered = filter_sales(
+        sales,
         cliente_id=cliente_id,
         producto_id=producto_id,
         pedido_id=pedido_filter or None,
@@ -685,7 +691,7 @@ def _render_email_alert_button(alerts: pd.DataFrame) -> None:
 def page_alerts() -> None:
     page_header("Alertas de stock", "Productos que requieren reposición")
 
-    alerts = get_low_stock_alerts()
+    alerts = load_low_stock_alerts()
     if alerts.empty:
         st.success("Todo en orden. No hay productos con stock bajo.")
     else:
