@@ -40,12 +40,19 @@ html, body {
     margin-bottom: 0;
 }
 
-.mobile-hint {
+.mobile-top-bar,
+.mobile-bottom-nav-anchor {
     display: none;
-    font-size: 0.8rem;
-    color: #6B6560;
-    margin-top: 0.5rem;
-    line-height: 1.4;
+}
+
+.mobile-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.35rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #1A1A1A;
+    margin: 0;
+    line-height: 1.2;
 }
 
 [data-testid="stSidebar"] {
@@ -136,32 +143,69 @@ section[data-testid="stMain"] .block-container {
         overflow-x: hidden;
     }
 
-    section[data-testid="stSidebar"] {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        height: 100vh !important;
-        z-index: 999999 !important;
-        transition: transform 0.2s ease, visibility 0.2s ease !important;
+    section[data-testid="stSidebar"],
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarNav"] {
+        display: none !important;
     }
 
-    section[data-testid="stSidebar"][aria-expanded="false"] {
-        transform: translateX(-100%) !important;
-        width: 0 !important;
-        min-width: 0 !important;
-        max-width: 0 !important;
-        overflow: hidden !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
+    .mobile-top-bar {
+        display: block;
+        margin-bottom: 0.25rem;
     }
 
-    section[data-testid="stSidebar"][aria-expanded="true"] {
-        width: min(85vw, 300px) !important;
-        min-width: min(85vw, 300px) !important;
-        max-width: 300px !important;
-        transform: translateX(0) !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
+    .mobile-top-bar [data-testid="column"] {
+        display: flex;
+        align-items: center;
+    }
+
+    .mobile-top-bar button {
+        min-height: 2.25rem !important;
+        width: 2.25rem !important;
+        padding: 0 !important;
+    }
+
+    .mobile-bottom-nav-anchor {
+        display: block;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 999999;
+        background-color: #FAF8F5;
+        border-top: 1px solid #E8E2D9;
+        padding: 0.3rem 0.15rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -4px 16px rgba(26, 26, 26, 0.08);
+    }
+
+    .mobile-bottom-nav-anchor [data-testid="stRadio"] {
+        margin: 0;
+    }
+
+    .mobile-bottom-nav-anchor [data-testid="stRadio"] > div {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 0.1rem;
+        width: 100%;
+    }
+
+    .mobile-bottom-nav-anchor [data-testid="stRadio"] label {
+        flex: 1 1 0;
+        min-width: 0;
+        text-align: center;
+        font-size: 0.58rem !important;
+        line-height: 1.15 !important;
+        white-space: pre-line;
+        padding: 0.3rem 0.05rem !important;
+        margin: 0 !important;
+        border-radius: 8px;
+    }
+
+    .mobile-bottom-nav-anchor [data-testid="stRadio"] label[data-checked="true"] {
+        background-color: #F0EBE3;
+        font-weight: 500;
     }
 
     section[data-testid="stMain"] {
@@ -174,7 +218,8 @@ section[data-testid="stMain"] .block-container {
     section[data-testid="stMain"] > div.block-container {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
-        padding-top: 2.5rem !important;
+        padding-top: 0.75rem !important;
+        padding-bottom: 5.5rem !important;
         max-width: 100% !important;
         margin-left: 0 !important;
         margin-right: 0 !important;
@@ -193,10 +238,6 @@ section[data-testid="stMain"] .block-container {
     .brand-sidebar {
         font-size: 1.45rem;
         letter-spacing: 0.06em;
-    }
-
-    .mobile-hint {
-        display: block;
     }
 
     [data-testid="stMetricValue"] {
