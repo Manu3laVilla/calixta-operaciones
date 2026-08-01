@@ -46,20 +46,24 @@ def _mobile_label_for_page(page_id: str, alerts: int) -> str:
     return page_id
 
 
+def _go_to_page(page_id: str) -> None:
+    st.session_state.nav_page = page_id
+    st.session_state.nav_sidebar = page_id
+
+
 def _render_mobile_nav(current_page: str, alerts: int) -> None:
     st.markdown('<div id="mobile-nav-anchor"></div>', unsafe_allow_html=True)
     cols = st.columns(len(MENU_PAGES))
     for col, (label, page_id, icon) in zip(cols, MENU_PAGES):
         with col:
-            selected = page_id == current_page
-            if st.button(
+            st.button(
                 _mobile_label_for_page(page_id, alerts),
                 key=f"nav_btn_{page_id}",
                 use_container_width=True,
-                type="primary" if selected else "secondary",
-            ):
-                st.session_state.nav_page = page_id
-                st.rerun()
+                type="primary" if page_id == current_page else "secondary",
+                on_click=_go_to_page,
+                args=(page_id,),
+            )
 
 
 def render_navigation() -> str:
@@ -71,6 +75,12 @@ def render_navigation() -> str:
     if st.session_state.nav_page not in PAGE_IDS:
         st.session_state.nav_page = "dashboard"
 
+    if "nav_sidebar" not in st.session_state:
+        st.session_state.nav_sidebar = st.session_state.nav_page
+
+    if st.session_state.nav_sidebar not in PAGE_IDS:
+        st.session_state.nav_sidebar = st.session_state.nav_page
+
     st.sidebar.markdown('<p class="brand-sidebar">Calixta</p>', unsafe_allow_html=True)
     st.sidebar.caption("Centro de Operaciones")
 
@@ -78,7 +88,7 @@ def render_navigation() -> str:
         "Menú",
         options=PAGE_IDS,
         format_func=lambda page_id: _label_for_page(page_id, alerts),
-        key="nav_page",
+        key="nav_sidebar",
         label_visibility="collapsed",
     )
 
@@ -88,6 +98,7 @@ def render_navigation() -> str:
         st.rerun()
     st.sidebar.caption("Base de datos: Google Sheets")
 
+    st.session_state.nav_page = st.session_state.nav_sidebar
     current_page = st.session_state.nav_page
 
     st.markdown(
