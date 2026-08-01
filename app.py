@@ -30,6 +30,7 @@ from ui.cached_data import (
     load_products,
     load_sales,
 )
+from ui.mobile import inject_mobile_sidebar_fix
 from ui.charts import PLOTLY_CONFIG, style_chart
 from ui.styles import CALIXTA_CSS, format_cop
 
@@ -37,10 +38,11 @@ st.set_page_config(
     page_title="Calixta | Centro de Operaciones",
     page_icon="✦",
     layout="wide",
-    initial_sidebar_state="auto",
+    initial_sidebar_state="collapsed",
 )
 
 st.markdown(CALIXTA_CSS, unsafe_allow_html=True)
+inject_mobile_sidebar_fix()
 
 CHART_COLORS = ["#2C2C2C", "#6B6560", "#A89F94", "#D4C9BC", "#E8E2D9"]
 
@@ -89,7 +91,7 @@ def sidebar() -> str:
 
     choice = st.sidebar.radio("Menú", list(menu.keys()), label_visibility="collapsed")
     st.sidebar.markdown(
-        '<p class="mobile-hint">En móvil, usa el menú ☰ arriba a la izquierda para navegar.</p>',
+        '<p class="mobile-hint">Toca el ícono ☰ (arriba a la izquierda) para abrir el menú.</p>',
         unsafe_allow_html=True,
     )
     st.sidebar.divider()

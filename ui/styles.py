@@ -136,6 +136,34 @@ section[data-testid="stMain"] .block-container {
         overflow-x: hidden;
     }
 
+    section[data-testid="stSidebar"] {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        z-index: 999999 !important;
+        transition: transform 0.2s ease, visibility 0.2s ease !important;
+    }
+
+    section[data-testid="stSidebar"][aria-expanded="false"] {
+        transform: translateX(-100%) !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        overflow: hidden !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    section[data-testid="stSidebar"][aria-expanded="true"] {
+        width: min(85vw, 300px) !important;
+        min-width: min(85vw, 300px) !important;
+        max-width: 300px !important;
+        transform: translateX(0) !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+
     section[data-testid="stMain"] {
         width: 100% !important;
         margin-left: 0 !important;
@@ -146,7 +174,7 @@ section[data-testid="stMain"] .block-container {
     section[data-testid="stMain"] > div.block-container {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
-        padding-top: 3.25rem !important;
+        padding-top: 2.5rem !important;
         max-width: 100% !important;
         margin-left: 0 !important;
         margin-right: 0 !important;
@@ -233,10 +261,6 @@ section[data-testid="stMain"] .block-container {
     section[data-testid="stMain"] > div.block-container {
         padding-left: 0.85rem !important;
         padding-right: 0.85rem !important;
-    }
-
-    [data-testid="stSidebar"] {
-        min-width: min(88vw, 300px) !important;
     }
 
     .stButton > button {
