@@ -6,7 +6,8 @@ textColor = "#1A1A1A"
 font = "serif"
 
 [client]
-toolbarMode = "minimal"
+toolbarMode = "viewer"
+showSidebarNavigation = false
 
 [server]
 headless = true

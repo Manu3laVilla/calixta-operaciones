@@ -47,12 +47,14 @@ html, body {
 
 .mobile-brand {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 1.35rem;
-    letter-spacing: 0.08em;
+    font-size: 1.45rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #1A1A1A;
     margin: 0;
-    line-height: 1.2;
+    padding: 0;
+    line-height: 1.5;
 }
 
 [data-testid="stSidebar"] {
@@ -143,16 +145,27 @@ section[data-testid="stMain"] .block-container {
         overflow-x: hidden;
     }
 
-    section[data-testid="stSidebar"],
+    header[data-testid="stHeader"],
+    [data-testid="stDecoration"],
+    [data-testid="stToolbar"],
+    [data-testid="stToolbarActions"],
+    [data-testid="stStatusWidget"],
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="stSidebarCollapseButton"],
-    [data-testid="stSidebarNav"] {
+    [data-testid="stSidebarNav"],
+    section[data-testid="stSidebar"] {
         display: none !important;
     }
 
     .mobile-top-bar {
-        display: block;
-        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        min-height: 3rem;
+        margin: 0 -1rem 0.75rem;
+        padding: 0.85rem 1rem 0.75rem;
+        padding-top: calc(0.85rem + env(safe-area-inset-top, 0px));
+        background-color: #F5F0E8;
+        border-bottom: 1px solid #E8E2D9;
     }
 
     .mobile-bottom-nav-anchor {
@@ -207,7 +220,7 @@ section[data-testid="stMain"] .block-container {
     section[data-testid="stMain"] > div.block-container {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
-        padding-top: 0.75rem !important;
+        padding-top: 0.25rem !important;
         padding-bottom: 5.5rem !important;
         max-width: 100% !important;
         margin-left: 0 !important;
