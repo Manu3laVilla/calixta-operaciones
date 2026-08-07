@@ -160,7 +160,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Outfit",
+                font_family="DM Sans",
             )
             style_chart(fig)
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
@@ -181,7 +181,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Outfit",
+                font_family="DM Sans",
             )
             style_chart(fig)
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
@@ -210,7 +210,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Outfit",
+                font_family="DM Sans",
                 yaxis={"categoryorder": "total ascending"},
             )
             style_chart(fig, height=380)
@@ -238,7 +238,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Outfit",
+                font_family="DM Sans",
             )
             style_chart(fig)
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)

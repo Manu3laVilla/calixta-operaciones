@@ -8,15 +8,15 @@ from ui.cached_data import clear_data_cache, load_low_stock_alerts
 from ui.theme import LOGO_PATH
 
 MENU_PAGES: list[tuple[str, str, str]] = [
-    ("Inicio", "dashboard", "◆"),
-    ("Productos", "productos", "▦"),
-    ("Clientes", "clientes", "◎"),
-    ("Pedidos", "pedidos", "▤"),
-    ("Ventas", "ventas", "◇"),
-    ("Alertas", "alertas", "!"),
+    ("Inicio", "dashboard"),
+    ("Productos", "productos"),
+    ("Clientes", "clientes"),
+    ("Pedidos", "pedidos"),
+    ("Ventas", "ventas"),
+    ("Alertas", "alertas"),
 ]
 
-PAGE_IDS = [page_id for _, page_id, _ in MENU_PAGES]
+PAGE_IDS = [page_id for _, page_id in MENU_PAGES]
 
 
 def _alert_count() -> int:
@@ -26,74 +26,14 @@ def _alert_count() -> int:
         return 0
 
 
-def _label_for_page(page_id: str, alerts: int) -> str:
-    for label, pid, _ in MENU_PAGES:
+def _nav_label(page_id: str, alerts: int) -> str:
+    for label, pid in MENU_PAGES:
         if pid != page_id:
             continue
-        if pid == "dashboard":
-            return "Inicio"
-        if pid == "alertas":
-            return f"Alertas ({alerts})" if alerts > 0 else "Alertas"
+        if pid == "alertas" and alerts > 0:
+            return f"Alertas · {alerts}"
         return label
     return page_id
-
-
-def _mobile_label(page_id: str, alerts: int) -> str:
-    for label, pid, icon in MENU_PAGES:
-        if pid != page_id:
-            continue
-        text = label
-        if pid == "alertas" and alerts > 0:
-            text = f"{label}\n({alerts})"
-        return f"{icon}\n{text}"
-    return page_id
-
-
-def _go_to_page(page_id: str) -> None:
-    st.session_state.nav_page = page_id
-
-
-def _refresh_data() -> None:
-    clear_data_cache()
-
-
-def _render_logo() -> None:
-    logo = Path(LOGO_PATH)
-    if logo.exists():
-        st.image(str(logo), width=130)
-    else:
-        st.markdown('<p class="nav-logo-fallback">calixta</p>', unsafe_allow_html=True)
-
-
-def _render_desktop_nav(current_page: str, alerts: int) -> None:
-    st.markdown('<div id="desktop-nav-anchor"></div>', unsafe_allow_html=True)
-    cols = st.columns(len(MENU_PAGES))
-    for col, (label, page_id, icon) in zip(cols, MENU_PAGES):
-        with col:
-            text = _label_for_page(page_id, alerts)
-            st.button(
-                f"{icon}  {text}",
-                key=f"desk_nav_{page_id}",
-                use_container_width=True,
-                type="primary" if page_id == current_page else "secondary",
-                on_click=_go_to_page,
-                args=(page_id,),
-            )
-
-
-def _render_mobile_nav(current_page: str, alerts: int) -> None:
-    st.markdown('<div id="mobile-nav-anchor"></div>', unsafe_allow_html=True)
-    cols = st.columns(len(MENU_PAGES))
-    for col, (label, page_id, icon) in zip(cols, MENU_PAGES):
-        with col:
-            st.button(
-                _mobile_label(page_id, alerts),
-                key=f"mob_nav_{page_id}",
-                use_container_width=True,
-                type="primary" if page_id == current_page else "secondary",
-                on_click=_go_to_page,
-                args=(page_id,),
-            )
 
 
 def render_navigation() -> str:
@@ -105,24 +45,36 @@ def render_navigation() -> str:
     if st.session_state.nav_page not in PAGE_IDS:
         st.session_state.nav_page = "dashboard"
 
-    current_page = st.session_state.nav_page
+    st.markdown('<header class="site-header">', unsafe_allow_html=True)
 
-    st.markdown('<div class="calixta-nav-shell">', unsafe_allow_html=True)
+    logo_col, tagline_col, action_col = st.columns([1.2, 3.3, 0.8])
+    with logo_col:
+        logo = Path(LOGO_PATH)
+        if logo.exists():
+            st.image(str(logo), width=108)
+        else:
+            st.markdown('<span class="logo-fallback">calixta</span>', unsafe_allow_html=True)
 
-    top_left, top_center, top_right = st.columns([1.4, 4.2, 0.7])
-    with top_left:
-        _render_logo()
-    with top_center:
-        _render_desktop_nav(current_page, alerts)
-    with top_right:
-        st.button(
-            "↻",
-            key="nav_refresh",
-            help="Actualizar datos",
-            on_click=_refresh_data,
+    with tagline_col:
+        st.markdown(
+            '<p class="site-tagline">Centro de Operaciones</p>',
+            unsafe_allow_html=True,
         )
 
-    st.markdown("</div>", unsafe_allow_html=True)
-    _render_mobile_nav(current_page, alerts)
+    with action_col:
+        if st.button("Actualizar", key="nav_refresh", use_container_width=True):
+            clear_data_cache()
+            st.rerun()
 
-    return current_page
+    st.radio(
+        "Sección",
+        options=PAGE_IDS,
+        format_func=lambda page_id: _nav_label(page_id, alerts),
+        horizontal=True,
+        key="nav_page",
+        label_visibility="collapsed",
+    )
+
+    st.markdown("</header>", unsafe_allow_html=True)
+
+    return st.session_state.nav_page

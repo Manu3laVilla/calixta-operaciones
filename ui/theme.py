@@ -2,7 +2,7 @@
 
 # Paleta principal (logo + swatches del usuario)
 CREAM = "#FFFFCD"
-CREAM_SOFT = "#FFFEF8"
+CREAM_SOFT = "#FAFAF8"
 OLIVE = "#828F59"
 OLIVE_DARK = "#6B704C"
 PINK = "#F7C3C6"
