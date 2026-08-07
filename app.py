@@ -33,11 +33,11 @@ from ui.cached_data import (
 from ui.navigation import render_navigation
 from ui.charts import PLOTLY_CONFIG, style_chart
 from ui.styles import CALIXTA_CSS, format_cop
-from ui.theme import CHART_COLORS, LOGO_PATH
+from ui.theme import CHART_COLORS, ICON_PATH
 
 st.set_page_config(
     page_title="Calixta | Centro de Operaciones",
-    page_icon=LOGO_PATH,
+    page_icon=ICON_PATH,
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -59,8 +59,13 @@ def init_connection() -> bool:
 
 
 def page_header(title: str, subtitle: str) -> None:
-    st.markdown(f'<p class="main-header">{title}</p>', unsafe_allow_html=True)
-    st.markdown(f'<p class="sub-header">{subtitle}</p>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="glass-page-head">'
+        f'<p class="main-header">{title}</p>'
+        f'<p class="sub-header">{subtitle}</p>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def _refresh_and_rerun() -> None:
@@ -160,7 +165,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="DM Sans",
+                font_family="Plus Jakarta Sans",
             )
             style_chart(fig)
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
@@ -181,7 +186,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="DM Sans",
+                font_family="Plus Jakarta Sans",
             )
             style_chart(fig)
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
@@ -210,7 +215,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="DM Sans",
+                font_family="Plus Jakarta Sans",
                 yaxis={"categoryorder": "total ascending"},
             )
             style_chart(fig, height=380)
@@ -238,7 +243,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="DM Sans",
+                font_family="Plus Jakarta Sans",
             )
             style_chart(fig)
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)

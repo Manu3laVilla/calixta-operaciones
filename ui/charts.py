@@ -13,7 +13,7 @@ def style_chart(fig: go.Figure, *, height: int = 340) -> go.Figure:
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font_family="DM Sans",
+        font_family="Plus Jakarta Sans",
         height=height,
         margin=dict(l=12, r=12, t=48, b=48),
         autosize=True,
