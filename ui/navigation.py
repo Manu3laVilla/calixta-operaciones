@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 
 from ui.cached_data import clear_data_cache, load_low_stock_alerts
+from ui.theme import LOGO_PATH
 
 MENU_PAGES: list[tuple[str, str, str]] = [
     ("Inicio", "dashboard", "◆"),
@@ -28,27 +31,54 @@ def _label_for_page(page_id: str, alerts: int) -> str:
         if pid != page_id:
             continue
         if pid == "dashboard":
-            return "Dashboard"
+            return "Inicio"
         if pid == "alertas":
-            return f"Alertas de stock ({alerts})" if alerts > 0 else "Alertas de stock"
+            return f"Alertas ({alerts})" if alerts > 0 else "Alertas"
         return label
     return page_id
 
 
-def _mobile_label_for_page(page_id: str, alerts: int) -> str:
+def _mobile_label(page_id: str, alerts: int) -> str:
     for label, pid, icon in MENU_PAGES:
         if pid != page_id:
             continue
         text = label
         if pid == "alertas" and alerts > 0:
-            text = f"{label} ({alerts})"
+            text = f"{label}\n({alerts})"
         return f"{icon}\n{text}"
     return page_id
 
 
 def _go_to_page(page_id: str) -> None:
     st.session_state.nav_page = page_id
-    st.session_state.nav_sidebar = page_id
+
+
+def _refresh_data() -> None:
+    clear_data_cache()
+
+
+def _render_logo() -> None:
+    logo = Path(LOGO_PATH)
+    if logo.exists():
+        st.image(str(logo), width=130)
+    else:
+        st.markdown('<p class="nav-logo-fallback">calixta</p>', unsafe_allow_html=True)
+
+
+def _render_desktop_nav(current_page: str, alerts: int) -> None:
+    st.markdown('<div id="desktop-nav-anchor"></div>', unsafe_allow_html=True)
+    cols = st.columns(len(MENU_PAGES))
+    for col, (label, page_id, icon) in zip(cols, MENU_PAGES):
+        with col:
+            text = _label_for_page(page_id, alerts)
+            st.button(
+                f"{icon}  {text}",
+                key=f"desk_nav_{page_id}",
+                use_container_width=True,
+                type="primary" if page_id == current_page else "secondary",
+                on_click=_go_to_page,
+                args=(page_id,),
+            )
 
 
 def _render_mobile_nav(current_page: str, alerts: int) -> None:
@@ -57,8 +87,8 @@ def _render_mobile_nav(current_page: str, alerts: int) -> None:
     for col, (label, page_id, icon) in zip(cols, MENU_PAGES):
         with col:
             st.button(
-                _mobile_label_for_page(page_id, alerts),
-                key=f"nav_btn_{page_id}",
+                _mobile_label(page_id, alerts),
+                key=f"mob_nav_{page_id}",
                 use_container_width=True,
                 type="primary" if page_id == current_page else "secondary",
                 on_click=_go_to_page,
@@ -75,36 +105,24 @@ def render_navigation() -> str:
     if st.session_state.nav_page not in PAGE_IDS:
         st.session_state.nav_page = "dashboard"
 
-    if "nav_sidebar" not in st.session_state:
-        st.session_state.nav_sidebar = st.session_state.nav_page
-
-    if st.session_state.nav_sidebar not in PAGE_IDS:
-        st.session_state.nav_sidebar = st.session_state.nav_page
-
-    st.sidebar.markdown('<p class="brand-sidebar">Calixta</p>', unsafe_allow_html=True)
-    st.sidebar.caption("Centro de Operaciones")
-
-    st.sidebar.radio(
-        "Menú",
-        options=PAGE_IDS,
-        format_func=lambda page_id: _label_for_page(page_id, alerts),
-        key="nav_sidebar",
-        label_visibility="collapsed",
-    )
-
-    st.sidebar.divider()
-    if st.sidebar.button("Actualizar datos", use_container_width=True):
-        clear_data_cache()
-        st.rerun()
-    st.sidebar.caption("Base de datos: Google Sheets")
-
-    st.session_state.nav_page = st.session_state.nav_sidebar
     current_page = st.session_state.nav_page
 
-    st.markdown(
-        '<div class="mobile-top-bar"><p class="mobile-brand">Calixta</p></div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="calixta-nav-shell">', unsafe_allow_html=True)
+
+    top_left, top_center, top_right = st.columns([1.4, 4.2, 0.7])
+    with top_left:
+        _render_logo()
+    with top_center:
+        _render_desktop_nav(current_page, alerts)
+    with top_right:
+        st.button(
+            "↻",
+            key="nav_refresh",
+            help="Actualizar datos",
+            on_click=_refresh_data,
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
     _render_mobile_nav(current_page, alerts)
 
     return current_page

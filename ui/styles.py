@@ -1,302 +1,400 @@
-CALIXTA_CSS = """
+from ui.theme import (
+    BORDER,
+    CREAM,
+    CREAM_SOFT,
+    OLIVE,
+    OLIVE_DARK,
+    PINK,
+    PINK_SOFT,
+    SAGE,
+    TERRACOTTA,
+    TEXT,
+    TEXT_MUTED,
+    WHITE,
+)
+
+CALIXTA_CSS = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Outfit:wght@300;400;500;600&display=swap');
 
-html, body {
-    font-family: 'Montserrat', sans-serif;
+:root {{
+    --cream: {CREAM};
+    --cream-soft: {CREAM_SOFT};
+    --olive: {OLIVE};
+    --olive-dark: {OLIVE_DARK};
+    --pink: {PINK};
+    --pink-soft: {PINK_SOFT};
+    --terracotta: {TERRACOTTA};
+    --sage: {SAGE};
+    --text: {TEXT};
+    --text-muted: {TEXT_MUTED};
+    --white: {WHITE};
+    --border: {BORDER};
+    --shadow: 0 8px 28px rgba(74, 80, 53, 0.08);
+    --radius: 14px;
+}}
+
+html, body, [class*="css"] {{
+    font-family: 'Outfit', sans-serif;
+    color: var(--text);
+}}
+
+.stApp {{
+    background: linear-gradient(165deg, var(--cream) 0%, var(--cream-soft) 45%, #FFF9F0 100%);
     overflow-x: hidden;
-}
+}}
 
-.stApp {
+/* Ocultar sidebar — menú superior moderno */
+section[data-testid="stSidebar"],
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="stSidebarCollapseButton"] {{
+    display: none !important;
+}}
+
+section[data-testid="stMain"] {{
     overflow-x: hidden;
-}
+}}
 
-.main-header {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 2.4rem;
+section[data-testid="stMain"] .block-container {{
+    max-width: 1180px;
+    padding-top: 0.5rem;
+    padding-bottom: 2rem;
+}}
+
+/* ——— Barra de navegación ——— */
+.calixta-nav-shell {{
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 4px);
+    padding: 0.65rem 1rem 0.75rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+}}
+
+.nav-logo-fallback {{
+    font-family: 'Fraunces', serif;
+    font-size: 1.6rem;
+    color: var(--olive-dark);
+    margin: 0;
+    letter-spacing: 0.04em;
+}}
+
+#desktop-nav-anchor ~ div[data-testid="stHorizontalBlock"] {{
+    gap: 0.35rem !important;
+    margin: 0 !important;
+}}
+
+#desktop-nav-anchor ~ div[data-testid="stHorizontalBlock"] button {{
+    border-radius: 999px !important;
+    border: 1.5px solid transparent !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    padding: 0.45rem 0.55rem !important;
+    min-height: 2.4rem !important;
+    transition: all 0.2s ease !important;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+}}
+
+#desktop-nav-anchor ~ div[data-testid="stHorizontalBlock"] button:hover {{
+    background: var(--pink-soft) !important;
+    color: var(--olive-dark) !important;
+    border-color: var(--pink) !important;
+}}
+
+#desktop-nav-anchor ~ div[data-testid="stHorizontalBlock"] button[kind="primary"],
+#desktop-nav-anchor ~ div[data-testid="stHorizontalBlock"] button[data-testid="stBaseButton-primary"] {{
+    background: var(--olive) !important;
+    color: var(--white) !important;
+    border-color: var(--olive) !important;
+    box-shadow: 0 4px 14px rgba(130, 143, 89, 0.35) !important;
+}}
+
+#desktop-nav-anchor ~ div[data-testid="stHorizontalBlock"] button[kind="primary"]:hover {{
+    background: var(--olive-dark) !important;
+    border-color: var(--olive-dark) !important;
+}}
+
+.calixta-nav-shell [data-testid="column"]:last-child button {{
+    border-radius: 50% !important;
+    width: 2.5rem !important;
+    min-width: 2.5rem !important;
+    height: 2.5rem !important;
+    padding: 0 !important;
+    background: var(--pink-soft) !important;
+    color: var(--terracotta) !important;
+    border: 1px solid var(--pink) !important;
+}}
+
+/* Mobile nav oculto en desktop */
+#mobile-nav-anchor,
+#mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] {{
+    display: none;
+}}
+
+.mobile-top-bar {{
+    display: none;
+}}
+
+/* ——— Tipografía de página ——— */
+.main-header {{
+    font-family: 'Fraunces', serif;
+    font-size: 2.35rem;
     font-weight: 600;
-    color: #1A1A1A;
-    letter-spacing: 0.06em;
-    margin-bottom: 0.2rem;
-    text-transform: uppercase;
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-}
+    color: var(--olive-dark);
+    letter-spacing: 0.02em;
+    margin-bottom: 0.15rem;
+    line-height: 1.15;
+}}
 
-.sub-header {
-    color: #6B6560;
+.sub-header {{
+    color: var(--text-muted);
     font-weight: 300;
     margin-bottom: 1.5rem;
-    letter-spacing: 0.01em;
+    font-size: 1.02rem;
     line-height: 1.5;
-}
+}}
 
-.brand-sidebar {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.8rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #1A1A1A;
-    margin-bottom: 0;
-}
+/* ——— Métricas y tarjetas ——— */
+[data-testid="stMetric"] {{
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    box-shadow: var(--shadow);
+}}
 
-.mobile-top-bar,
-#mobile-nav-anchor,
-#mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] {
-    display: none;
-}
-
-.mobile-brand {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.45rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #1A1A1A;
-    margin: 0;
-    padding: 0;
-    line-height: 1.5;
-}
-
-[data-testid="stSidebar"] {
-    background-color: #FAF8F5;
-    border-right: 1px solid #E8E2D9;
-}
-
-[data-testid="stSidebar"] [data-testid="stRadio"] label {
-    padding: 0.65rem 0.5rem;
-    border-radius: 8px;
-}
-
-[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
-    background-color: #F0EBE3;
-}
-
-[data-testid="stMetricValue"] {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.8rem !important;
+[data-testid="stMetricValue"] {{
+    font-family: 'Fraunces', serif;
+    font-size: 1.65rem !important;
+    color: var(--terracotta) !important;
     line-height: 1.2 !important;
     word-break: break-word;
-}
+}}
 
-[data-testid="stMetricLabel"] {
-    font-size: 0.85rem !important;
-}
+[data-testid="stMetricLabel"] {{
+    font-size: 0.82rem !important;
+    color: var(--text-muted) !important;
+    font-weight: 500 !important;
+}}
 
-.stTabs [data-baseweb="tab-list"] {
+/* ——— Tabs ——— */
+.stTabs [data-baseweb="tab-list"] {{
+    gap: 0.4rem;
     flex-wrap: wrap;
-    gap: 0.35rem;
-}
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 999px;
+    padding: 0.3rem;
+    border: 1px solid var(--border);
+}}
 
-.stTabs [data-baseweb="tab"] {
+.stTabs [data-baseweb="tab"] {{
     height: auto !important;
-    min-height: 2.75rem;
+    min-height: 2.5rem;
+    border-radius: 999px !important;
     white-space: normal;
     text-align: center;
-}
+    font-weight: 500;
+    color: var(--text-muted);
+}}
 
-.stButton > button {
-    min-height: 2.75rem;
-    border-radius: 8px;
-}
+.stTabs [aria-selected="true"] {{
+    background: var(--olive) !important;
+    color: var(--white) !important;
+}}
+
+/* ——— Botones generales ——— */
+.stButton > button {{
+    border-radius: 999px !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 500 !important;
+    min-height: 2.65rem;
+    border: 1.5px solid var(--border) !important;
+    transition: all 0.2s ease !important;
+}}
+
+.stButton > button[kind="primary"] {{
+    background: var(--terracotta) !important;
+    border-color: var(--terracotta) !important;
+    color: var(--white) !important;
+}}
+
+.stButton > button[kind="primary"]:hover {{
+    background: #9A5E26 !important;
+    border-color: #9A5E26 !important;
+}}
+
+.stButton > button[kind="secondary"]:hover {{
+    background: var(--pink-soft) !important;
+    border-color: var(--pink) !important;
+    color: var(--olive-dark) !important;
+}}
+
+/* ——— Inputs ——— */
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+[data-testid="stTextArea"] textarea,
+[data-testid="stSelectbox"] div[data-baseweb="select"] {{
+    border-radius: 12px !important;
+    border-color: var(--border) !important;
+}}
 
 [data-testid="stDataFrame"],
-[data-testid="stTable"] {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    max-width: 100%;
-}
+[data-testid="stTable"] {{
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}}
 
-section[data-testid="stMain"] {
-    overflow-x: hidden;
-}
+h3 {{
+    font-family: 'Fraunces', serif !important;
+    color: var(--olive-dark) !important;
+    font-weight: 600 !important;
+}}
 
-section[data-testid="stMain"] .block-container {
-    max-width: 100%;
-    padding-top: 1.25rem;
-    padding-bottom: 2rem;
-}
+/* ——— Tablet ——— */
+@media (max-width: 992px) {{
+    .main-header {{
+        font-size: 1.9rem;
+    }}
 
-/* Tablet */
-@media (max-width: 992px) {
-    .main-header {
-        font-size: 2rem;
-    }
+    [data-testid="stMetricValue"] {{
+        font-size: 1.35rem !important;
+    }}
 
-    [data-testid="stMetricValue"] {
-        font-size: 1.5rem !important;
-    }
+    #desktop-nav-anchor ~ div[data-testid="stHorizontalBlock"] button {{
+        font-size: 0.72rem !important;
+        padding: 0.4rem 0.3rem !important;
+    }}
 
-    div[data-testid="stHorizontalBlock"] {
+    div[data-testid="stHorizontalBlock"] {{
         flex-wrap: wrap !important;
         gap: 0.75rem !important;
-    }
+    }}
 
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
         flex: 1 1 45% !important;
         min-width: 0 !important;
         max-width: 100% !important;
-        width: auto !important;
-    }
-}
+    }}
+}}
 
-/* Mobile */
-@media (max-width: 768px) {
-    [data-testid="stAppViewContainer"] {
-        overflow-x: hidden;
-    }
-
+/* ——— Mobile ——— */
+@media (max-width: 768px) {{
     header[data-testid="stHeader"],
     [data-testid="stDecoration"],
     [data-testid="stToolbar"],
     [data-testid="stToolbarActions"],
-    [data-testid="stStatusWidget"],
-    [data-testid="stSidebarCollapsedControl"],
-    [data-testid="stSidebarCollapseButton"],
-    [data-testid="stSidebarNav"],
-    section[data-testid="stSidebar"] {
+    [data-testid="stStatusWidget"] {{
         display: none !important;
-    }
+    }}
 
-    .mobile-top-bar {
+    .calixta-nav-shell {{
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 1rem;
+        border-radius: var(--radius);
+    }}
+
+    .calixta-nav-shell [data-testid="column"]:nth-child(2) {{
+        display: none !important;
+    }}
+
+    .calixta-nav-shell [data-testid="column"]:last-child {{
         display: flex;
+        justify-content: flex-end;
         align-items: center;
-        min-height: 3rem;
-        margin: 0 -1rem 0.75rem;
-        padding: 0.85rem 1rem 0.75rem;
-        padding-top: calc(0.85rem + env(safe-area-inset-top, 0px));
-        background-color: #F5F0E8;
-        border-bottom: 1px solid #E8E2D9;
-    }
+    }}
 
-    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] {
+    #desktop-nav-anchor,
+    #desktop-nav-anchor ~ div[data-testid="stHorizontalBlock"] {{
+        display: none !important;
+    }}
+
+    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] {{
         display: flex !important;
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
         z-index: 999999;
-        background-color: #FAF8F5;
-        border-top: 1px solid #E8E2D9;
-        padding: 0.35rem 0.25rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
-        box-shadow: 0 -4px 16px rgba(26, 26, 26, 0.08);
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(14px);
+        border-top: 1px solid var(--border);
+        padding: 0.35rem 0.2rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -6px 24px rgba(74, 80, 53, 0.1);
         margin: 0 !important;
-        gap: 0.15rem !important;
-    }
+        gap: 0.1rem !important;
+    }}
 
-    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] button {
-        min-height: 3.1rem !important;
-        height: auto !important;
-        padding: 0.35rem 0.1rem !important;
-        font-size: 0.58rem !important;
+    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] button {{
+        border-radius: 12px !important;
+        min-height: 3rem !important;
+        font-size: 0.55rem !important;
         line-height: 1.15 !important;
         white-space: pre-line !important;
-    }
+        padding: 0.3rem 0.05rem !important;
+        border: none !important;
+        background: transparent !important;
+        color: var(--text-muted) !important;
+    }}
 
-    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] [data-testid="column"] {
-        min-width: 0 !important;
-    }
+    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] button[kind="primary"] {{
+        background: var(--pink-soft) !important;
+        color: var(--olive-dark) !important;
+        font-weight: 600 !important;
+    }}
 
-    section[data-testid="stMain"] {
-        width: 100% !important;
-        margin-left: 0 !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
+    section[data-testid="stMain"] > div.block-container {{
+        padding-left: 0.9rem !important;
+        padding-right: 0.9rem !important;
+        padding-bottom: 5.75rem !important;
+    }}
 
-    section[data-testid="stMain"] > div.block-container {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        padding-top: 0.25rem !important;
-        padding-bottom: 5.5rem !important;
-        max-width: 100% !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
+    .main-header {{
+        font-size: 1.5rem;
+    }}
 
-    .main-header {
-        font-size: 1.55rem;
-        letter-spacing: 0.02em;
-    }
+    .sub-header {{
+        font-size: 0.92rem;
+    }}
 
-    .sub-header {
-        font-size: 0.95rem;
-        margin-bottom: 1rem;
-    }
-
-    .brand-sidebar {
-        font-size: 1.45rem;
-        letter-spacing: 0.06em;
-    }
-
-    [data-testid="stMetricValue"] {
-        font-size: 1.2rem !important;
-    }
-
-    [data-testid="stMetricLabel"] {
-        font-size: 0.78rem !important;
-    }
-
-    div[data-testid="stHorizontalBlock"] {
+    div[data-testid="stHorizontalBlock"] {{
         flex-direction: column !important;
         flex-wrap: nowrap !important;
         gap: 0.5rem !important;
         width: 100% !important;
-    }
+    }}
 
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] {{
+        flex-direction: row !important;
+    }}
+
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
         width: 100% !important;
         min-width: 0 !important;
         max-width: 100% !important;
         flex: none !important;
-    }
+    }}
 
-    .stTabs [data-baseweb="tab"] {
-        font-size: 0.82rem;
-        padding-left: 0.65rem !important;
-        padding-right: 0.65rem !important;
-    }
-
-    [data-testid="stExpander"] details summary p {
-        font-size: 0.95rem;
-    }
-
-    h3 {
-        font-size: 1.1rem !important;
-    }
+    #mobile-nav-anchor ~ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
+        flex: 1 1 0 !important;
+        width: auto !important;
+    }}
 
     [data-testid="stSelectbox"] > div,
     [data-testid="stTextInput"] > div,
     [data-testid="stNumberInput"] > div,
-    [data-testid="stTextArea"] > div {
+    [data-testid="stTextArea"] > div {{
         font-size: 16px !important;
-    }
+    }}
 
-    .js-plotly-plot, .plot-container {
-        max-width: 100% !important;
-        overflow-x: auto !important;
-    }
-}
-
-/* Small phones */
-@media (max-width: 480px) {
-    .main-header {
-        font-size: 1.35rem;
-    }
-
-    .sub-header {
-        font-size: 0.88rem;
-    }
-
-    section[data-testid="stMain"] > div.block-container {
-        padding-left: 0.85rem !important;
-        padding-right: 0.85rem !important;
-    }
-
-    .stButton > button {
+    .stButton > button {{
         width: 100%;
-    }
-}
+    }}
+}}
 </style>
 """
 

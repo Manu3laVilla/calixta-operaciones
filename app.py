@@ -33,17 +33,16 @@ from ui.cached_data import (
 from ui.navigation import render_navigation
 from ui.charts import PLOTLY_CONFIG, style_chart
 from ui.styles import CALIXTA_CSS, format_cop
+from ui.theme import CHART_COLORS, LOGO_PATH
 
 st.set_page_config(
     page_title="Calixta | Centro de Operaciones",
-    page_icon="✦",
+    page_icon=LOGO_PATH,
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 st.markdown(CALIXTA_CSS, unsafe_allow_html=True)
-
-CHART_COLORS = ["#2C2C2C", "#6B6560", "#A89F94", "#D4C9BC", "#E8E2D9"]
 
 
 def init_connection() -> bool:
@@ -161,7 +160,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Montserrat",
+                font_family="Outfit",
             )
             style_chart(fig)
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
@@ -182,7 +181,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Montserrat",
+                font_family="Outfit",
             )
             style_chart(fig)
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
@@ -211,7 +210,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Montserrat",
+                font_family="Outfit",
                 yaxis={"categoryorder": "total ascending"},
             )
             style_chart(fig, height=380)
@@ -239,7 +238,7 @@ def page_dashboard() -> None:
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Montserrat",
+                font_family="Outfit",
             )
             style_chart(fig)
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
