@@ -1,17 +1,9 @@
 from ui.theme import (
-    BG_GRADIENT,
-    BORDER,
     CREAM,
-    GLASS_BG,
-    GLASS_BORDER,
-    GLASS_SHADOW,
     OLIVE,
     OLIVE_DARK,
     PINK,
     PINK_SOFT,
-    RADIUS_LG,
-    RADIUS_MD,
-    RADIUS_PILL,
     SAGE,
     TERRACOTTA,
     TEXT,
@@ -21,7 +13,7 @@ from ui.theme import (
 
 CALIXTA_CSS = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Syne:wght@600;700&display=swap');
 
 :root {{
     --cream: {CREAM};
@@ -34,40 +26,23 @@ CALIXTA_CSS = f"""
     --text: {TEXT};
     --text-muted: {TEXT_MUTED};
     --white: {WHITE};
-    --glass-bg: {GLASS_BG};
-    --glass-border: {GLASS_BORDER};
-    --glass-shadow: {GLASS_SHADOW};
-    --radius-lg: {RADIUS_LG};
-    --radius-md: {RADIUS_MD};
-    --radius-pill: {RADIUS_PILL};
+    --radius: 20px;
+    --radius-pill: 999px;
 }}
 
-/* ——— Base ——— */
+/* ——— Fondo con paleta viva ——— */
 html, body, [class*="css"] {{
     font-family: 'Plus Jakarta Sans', sans-serif;
     color: var(--text);
 }}
 
 .stApp {{
-    background: {BG_GRADIENT};
+    background-color: var(--cream);
+    background-image:
+        radial-gradient(ellipse 80% 60% at 0% 0%, rgba(247, 195, 198, 0.55) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 50% at 100% 10%, rgba(198, 186, 128, 0.45) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(240, 199, 193, 0.4) 0%, transparent 55%);
     background-attachment: fixed;
-}}
-
-.stApp::before {{
-    content: "";
-    position: fixed;
-    inset: 0;
-    background:
-        radial-gradient(circle at 12% 18%, rgba(247, 195, 198, 0.45) 0%, transparent 42%),
-        radial-gradient(circle at 88% 12%, rgba(198, 186, 128, 0.35) 0%, transparent 38%),
-        radial-gradient(circle at 70% 85%, rgba(255, 255, 205, 0.5) 0%, transparent 45%);
-    pointer-events: none;
-    z-index: 0;
-}}
-
-.stApp [data-testid="stAppViewContainer"] {{
-    position: relative;
-    z-index: 1;
 }}
 
 section[data-testid="stSidebar"],
@@ -77,256 +52,277 @@ section[data-testid="stSidebar"],
 }}
 
 section[data-testid="stMain"] .block-container {{
-    max-width: 1200px;
-    padding: 1rem 1.25rem 2.5rem;
+    max-width: 1140px;
+    padding: 0.75rem 1.25rem 2.5rem;
 }}
 
-/* ——— Header glass ——— */
-.glass-header {{
-    background: var(--glass-bg);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--glass-shadow);
-    padding: 0.85rem 1.1rem 0.95rem;
+/* ——— Header ——— */
+.site-header {{
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: calc(var(--radius) + 4px);
+    box-shadow: 0 12px 40px rgba(130, 143, 89, 0.12);
+    padding: 1rem 1.25rem 1.1rem;
     margin-bottom: 1.75rem;
 }}
 
+/* Marca: ícono + logo */
+.brand-block {{
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}}
+
+.brand-icon-wrap {{
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, var(--pink-soft), var(--pink));
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(247, 195, 198, 0.5);
+}}
+
+.brand-icon {{
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+}}
+
+.brand-text {{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    min-width: 0;
+}}
+
+.brand-logo {{
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+    object-position: left center;
+    display: block;
+}}
+
 .brand-fallback {{
+    font-family: 'Syne', sans-serif;
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--olive-dark);
-    letter-spacing: 0.04em;
+    letter-spacing: -0.02em;
 }}
 
-.glass-header [data-testid="column"]:last-child button {{
-    margin-top: 0.15rem;
-    border-radius: 50% !important;
-    width: 2.6rem !important;
-    min-width: 2.6rem !important;
-    height: 2.6rem !important;
-    padding: 0 !important;
-    background: rgba(255, 255, 255, 0.85) !important;
-    border: 1px solid var(--glass-border) !important;
-    color: var(--olive) !important;
-    box-shadow: 0 2px 10px rgba(107, 112, 76, 0.08) !important;
+.brand-subtitle {{
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--terracotta);
 }}
 
-/* ——— Nav pills (un solo menú) ——— */
-.glass-nav [data-testid="stRadio"],
-.glass-header [data-testid="stRadio"] {{
-    margin: 0.65rem 0 0;
-}}
-
-.glass-nav [data-testid="stRadio"] > div,
-.glass-header [data-testid="stRadio"] > div {{
+.site-header [data-testid="column"]:last-child {{
     display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.2rem;
-    background: rgba(255, 255, 255, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    border-radius: var(--radius-pill);
-    padding: 0.28rem;
+    align-items: flex-start;
+    justify-content: flex-end;
 }}
 
-.glass-nav [data-testid="stRadio"] label,
-.glass-header [data-testid="stRadio"] label {{
-    background: transparent !important;
+.site-header [data-testid="column"]:last-child button {{
+    margin-top: 0.5rem;
+    border-radius: 14px !important;
+    width: 2.75rem !important;
+    min-width: 2.75rem !important;
+    height: 2.75rem !important;
+    padding: 0 !important;
+    background: var(--sage) !important;
     border: none !important;
-    border-radius: var(--radius-pill) !important;
-    padding: 0.5rem 1rem !important;
-    margin: 0 !important;
-    font-size: 0.86rem !important;
-    font-weight: 600 !important;
-    color: var(--text-muted) !important;
-    transition: all 0.2s ease;
-    white-space: nowrap;
+    color: var(--white) !important;
+    font-size: 1.1rem !important;
+    box-shadow: 0 4px 12px rgba(198, 186, 128, 0.45) !important;
 }}
 
-.glass-nav [data-testid="stRadio"] label:hover,
-.glass-header [data-testid="stRadio"] label:hover {{
+.site-header [data-testid="column"]:last-child button:hover {{
+    background: var(--olive) !important;
+}}
+
+/* ——— Menú pills moderno ——— */
+.site-header [data-testid="stPills"] {{
+    margin-top: 1rem;
+}}
+
+.site-header [data-testid="stPills"] > div {{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.35rem;
+    background: rgba(198, 186, 128, 0.28);
+    border: 1px solid rgba(130, 143, 89, 0.15);
+    border-radius: var(--radius-pill);
+    padding: 0.35rem;
+}}
+
+.site-header [data-testid="stPills"] button {{
+    border-radius: var(--radius-pill) !important;
+    border: none !important;
+    background: transparent !important;
+    color: var(--olive-dark) !important;
+    font-weight: 600 !important;
+    font-size: 0.84rem !important;
+    padding: 0.5rem 1.1rem !important;
+    min-height: 2.35rem !important;
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
+}}
+
+.site-header [data-testid="stPills"] button:hover {{
+    background: rgba(255, 255, 255, 0.55) !important;
     color: var(--olive-dark) !important;
 }}
 
-.glass-nav [data-testid="stRadio"] label[data-checked="true"],
-.glass-header [data-testid="stRadio"] label[data-checked="true"] {{
+.site-header [data-testid="stPills"] button[kind="primary"],
+.site-header [data-testid="stPills"] button[aria-pressed="true"] {{
     background: var(--white) !important;
     color: var(--olive-dark) !important;
-    box-shadow: 0 4px 14px rgba(107, 112, 76, 0.12) !important;
-}}
-
-.glass-nav [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child,
-.glass-header [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {{
-    display: none !important;
+    box-shadow: 0 4px 16px rgba(130, 143, 89, 0.18) !important;
 }}
 
 /* ——— Contenido ——— */
 .glass-page-head {{
-    background: var(--glass-bg);
+    background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--glass-shadow);
-    padding: 1.35rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: var(--radius);
+    border-left: 4px solid var(--terracotta);
+    box-shadow: 0 8px 28px rgba(130, 143, 89, 0.1);
+    padding: 1.25rem 1.4rem;
     margin-bottom: 1.5rem;
 }}
 
 .main-header {{
-    font-size: 1.85rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--olive-dark);
-    margin: 0 0 0.35rem;
-    line-height: 1.2;
+    margin: 0 0 0.3rem;
     letter-spacing: -0.02em;
 }}
 
 .sub-header {{
     color: var(--text-muted);
     font-size: 0.95rem;
-    font-weight: 400;
     margin: 0;
     line-height: 1.5;
 }}
 
-/* Métricas = mini cards glass */
+/* Métricas con color */
 [data-testid="stMetric"] {{
-    background: var(--glass-bg) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border) !important;
-    border-radius: var(--radius-md) !important;
-    padding: 1rem 1.1rem !important;
-    box-shadow: var(--glass-shadow) !important;
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.9) !important;
+    border-radius: var(--radius) !important;
+    border-top: 3px solid var(--olive) !important;
+    padding: 1rem !important;
+    box-shadow: 0 6px 20px rgba(130, 143, 89, 0.08) !important;
+}}
+
+[data-testid="stMetric"]:nth-child(2) {{
+    border-top-color: var(--terracotta) !important;
+}}
+
+[data-testid="stMetric"]:nth-child(3) {{
+    border-top-color: var(--pink) !important;
 }}
 
 [data-testid="stMetricValue"] {{
-    font-size: 1.45rem !important;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem !important;
     font-weight: 700 !important;
     color: var(--olive-dark) !important;
 }}
 
 [data-testid="stMetricLabel"] {{
-    font-size: 0.72rem !important;
+    font-size: 0.7rem !important;
     font-weight: 600 !important;
     color: var(--text-muted) !important;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.08em;
 }}
 
-/* Gráficos y bloques */
-[data-testid="stVerticalBlock"] > div:has(.js-plotly-plot),
-.element-container:has([data-testid="stDataFrame"]) {{
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--glass-shadow);
-    padding: 0.5rem;
-}}
-
-h3, [data-testid="stMarkdownContainer"] h3 {{
-    font-weight: 700 !important;
+h3 {{
+    font-family: 'Syne', sans-serif !important;
+    font-weight: 600 !important;
     color: var(--olive-dark) !important;
-    font-size: 1.05rem !important;
-    letter-spacing: -0.01em;
 }}
 
 /* Tabs */
 .stTabs [data-baseweb="tab-list"] {{
-    background: rgba(255, 255, 255, 0.4);
+    background: rgba(198, 186, 128, 0.22);
     border-radius: var(--radius-pill);
-    padding: 0.25rem;
-    border: 1px solid var(--glass-border);
-    gap: 0.2rem;
+    padding: 0.3rem;
+    gap: 0.25rem;
     flex-wrap: wrap;
 }}
 
 .stTabs [data-baseweb="tab"] {{
     border-radius: var(--radius-pill) !important;
     font-weight: 600;
-    font-size: 0.85rem;
     color: var(--text-muted);
-    min-height: 2.4rem;
 }}
 
 .stTabs [aria-selected="true"] {{
     background: var(--white) !important;
     color: var(--olive-dark) !important;
-    box-shadow: 0 2px 10px rgba(107, 112, 76, 0.1) !important;
 }}
 
 /* Botones */
 .stButton > button {{
     border-radius: var(--radius-pill) !important;
     font-weight: 600 !important;
-    font-size: 0.88rem !important;
-    min-height: 2.5rem;
-    border: 1px solid var(--glass-border) !important;
-    background: rgba(255, 255, 255, 0.7) !important;
+    border: none !important;
     transition: all 0.2s ease !important;
 }}
 
 .stButton > button[kind="primary"] {{
-    background: var(--olive) !important;
-    border-color: var(--olive) !important;
+    background: linear-gradient(135deg, var(--terracotta), #9A5E26) !important;
     color: var(--white) !important;
-    box-shadow: 0 4px 16px rgba(130, 143, 89, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(183, 112, 46, 0.35) !important;
 }}
 
-.stButton > button[kind="primary"]:hover {{
-    background: var(--olive-dark) !important;
+.stButton > button[kind="secondary"] {{
+    background: rgba(255, 255, 255, 0.8) !important;
+    color: var(--olive-dark) !important;
+    border: 1px solid rgba(130, 143, 89, 0.2) !important;
 }}
 
 .stButton > button[kind="secondary"]:hover {{
     background: var(--pink-soft) !important;
-    border-color: var(--pink) !important;
 }}
 
-/* Inputs glass */
 [data-testid="stTextInput"] input,
 [data-testid="stNumberInput"] input,
-[data-testid="stTextArea"] textarea,
-[data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
-    border-radius: 14px !important;
-    border-color: var(--glass-border) !important;
-    background: rgba(255, 255, 255, 0.75) !important;
-    backdrop-filter: blur(6px);
+[data-testid="stTextArea"] textarea {{
+    border-radius: 12px !important;
+    border: 1px solid rgba(130, 143, 89, 0.2) !important;
+    background: rgba(255, 255, 255, 0.85) !important;
 }}
 
 [data-testid="stDataFrame"] {{
-    border-radius: var(--radius-md);
-    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.7);
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.55);
-}}
-
-/* Alertas / info */
-[data-testid="stAlert"] {{
-    border-radius: var(--radius-md) !important;
-    backdrop-filter: blur(8px);
 }}
 
 /* ——— Tablet ——— */
-@media (max-width: 960px) {{
-    .glass-header {{
-        padding: 0.75rem;
-    }}
-
-    .glass-header [data-testid="stRadio"] label {{
+@media (max-width: 900px) {{
+    .brand-logo {{ height: 28px; }}
+    .site-header [data-testid="stPills"] button {{
         font-size: 0.78rem !important;
-        padding: 0.45rem 0.65rem !important;
-    }}
-
-    .main-header {{
-        font-size: 1.55rem;
-    }}
-
-    div[data-testid="stHorizontalBlock"] {{
-        flex-wrap: wrap !important;
-        gap: 0.65rem !important;
+        padding: 0.45rem 0.75rem !important;
     }}
 }}
 
@@ -339,66 +335,55 @@ h3, [data-testid="stMarkdownContainer"] h3 {{
     }}
 
     section[data-testid="stMain"] .block-container {{
-        padding: 0.65rem 0.75rem 5.75rem !important;
+        padding: 0.5rem 0.85rem 5.5rem !important;
     }}
 
-    .glass-header {{
-        padding: 0.7rem 0.75rem 0.5rem;
+    .site-header {{
+        padding: 0.85rem 1rem 0.5rem;
         margin-bottom: 1.25rem;
-        border-radius: var(--radius-md);
     }}
 
-    .glass-header > div[data-testid="stHorizontalBlock"]:first-child {{
-        margin-bottom: 0 !important;
+    .brand-icon-wrap {{
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
     }}
 
-    .glass-nav {{
-        height: 0;
-        overflow: visible;
-    }}
+    .brand-icon {{ width: 28px; height: 28px; }}
+    .brand-logo {{ height: 26px; }}
+    .brand-subtitle {{ font-size: 0.65rem; }}
 
-    .glass-nav [data-testid="stRadio"],
-    .glass-header [data-testid="stRadio"] {{
+    .site-header [data-testid="stPills"] {{
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
         z-index: 999;
         margin: 0;
-        padding: 0.45rem 0.4rem calc(0.55rem + env(safe-area-inset-bottom));
-        background: rgba(255, 255, 255, 0.88);
+        padding: 0.5rem 0.5rem calc(0.6rem + env(safe-area-inset-bottom));
+        background: rgba(255, 255, 255, 0.94);
         backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-top: 1px solid var(--glass-border);
-        box-shadow: 0 -8px 30px rgba(107, 112, 76, 0.12);
+        border-top: 1px solid rgba(130, 143, 89, 0.12);
+        box-shadow: 0 -8px 32px rgba(130, 143, 89, 0.15);
     }}
 
-    .glass-nav [data-testid="stRadio"] > div,
-    .glass-header [data-testid="stRadio"] > div {{
-        justify-content: space-between;
+    .site-header [data-testid="stPills"] > div {{
         flex-wrap: nowrap;
         overflow-x: auto;
+        justify-content: flex-start;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
-        background: rgba(255, 255, 255, 0.5);
+        background: rgba(198, 186, 128, 0.2);
     }}
 
-    .glass-nav [data-testid="stRadio"] > div::-webkit-scrollbar,
-    .glass-header [data-testid="stRadio"] > div::-webkit-scrollbar {{
+    .site-header [data-testid="stPills"] > div::-webkit-scrollbar {{
         display: none;
     }}
 
-    .glass-nav [data-testid="stRadio"] label,
-    .glass-header [data-testid="stRadio"] label {{
-        flex: 1 0 auto;
-        font-size: 0.68rem !important;
-        padding: 0.45rem 0.55rem !important;
-        text-align: center;
-    }}
-
-    .glass-page-head {{
-        padding: 1rem 1.1rem;
-        border-radius: var(--radius-md);
+    .site-header [data-testid="stPills"] button {{
+        flex-shrink: 0;
+        font-size: 0.72rem !important;
+        padding: 0.45rem 0.85rem !important;
     }}
 
     div[data-testid="stHorizontalBlock"] {{
@@ -407,11 +392,6 @@ h3, [data-testid="stMarkdownContainer"] h3 {{
 
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
         width: 100% !important;
-        min-width: 0 !important;
-    }}
-
-    .stButton > button {{
-        width: 100%;
     }}
 }}
 </style>

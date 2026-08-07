@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 import streamlit as st
@@ -22,9 +23,40 @@ def _nav_label(page_id: str, alerts: int) -> str:
         if pid != page_id:
             continue
         if pid == "alertas" and alerts > 0:
-            return f"{label} · {alerts}"
+            return f"Alertas · {alerts}"
         return label
     return page_id
+
+
+def _img_data_uri(path: Path) -> str:
+    if not path.exists():
+        return ""
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
+def _brand_block() -> str:
+    icon_uri = _img_data_uri(Path(ICON_PATH))
+    logo_uri = _img_data_uri(Path(LOGO_PATH))
+    icon_img = (
+        f'<img src="{icon_uri}" alt="Calixta" class="brand-icon" />'
+        if icon_uri
+        else ""
+    )
+    logo_img = (
+        f'<img src="{logo_uri}" alt="calixta" class="brand-logo" />'
+        if logo_uri
+        else '<span class="brand-fallback">calixta</span>'
+    )
+    return f"""
+    <div class="brand-block">
+        <div class="brand-icon-wrap">{icon_img}</div>
+        <div class="brand-text">
+            {logo_img}
+            <span class="brand-subtitle">Centro de Operaciones</span>
+        </div>
+    </div>
+    """
 
 
 def render_navigation() -> str:
@@ -36,37 +68,29 @@ def render_navigation() -> str:
     if st.session_state.nav_page not in PAGE_IDS:
         st.session_state.nav_page = "dashboard"
 
-    st.markdown('<header class="glass-header">', unsafe_allow_html=True)
+    st.markdown('<header class="site-header">', unsafe_allow_html=True)
 
-    brand_col, action_col = st.columns([5.5, 0.6])
+    brand_col, action_col = st.columns([5.2, 0.8])
     with brand_col:
-        icon_path = Path(ICON_PATH)
-        logo_path = Path(LOGO_PATH)
-        if icon_path.exists() and logo_path.exists():
-            i_col, l_col = st.columns([0.45, 1.55])
-            with i_col:
-                st.image(str(icon_path), width=38)
-            with l_col:
-                st.image(str(logo_path), width=94)
-        elif logo_path.exists():
-            st.image(str(logo_path), width=108)
-        else:
-            st.markdown('<span class="brand-fallback">calixta</span>', unsafe_allow_html=True)
-
+        st.markdown(_brand_block(), unsafe_allow_html=True)
     with action_col:
-        if st.button("↻", key="nav_refresh", help="Actualizar datos", use_container_width=True):
+        if st.button("↻", key="nav_refresh", help="Actualizar datos"):
             clear_data_cache()
             st.rerun()
 
-    st.markdown('<nav class="glass-nav">', unsafe_allow_html=True)
-    st.radio(
+    selected = st.pills(
         "Sección",
         options=PAGE_IDS,
         format_func=lambda page_id: _nav_label(page_id, alerts),
-        horizontal=True,
+        selection_mode="single",
         key="nav_page",
         label_visibility="collapsed",
+        width="stretch",
     )
-    st.markdown("</nav></header>", unsafe_allow_html=True)
+
+    st.markdown("</header>", unsafe_allow_html=True)
+
+    if selected and selected in PAGE_IDS:
+        return selected
 
     return st.session_state.nav_page
