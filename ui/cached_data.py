@@ -8,6 +8,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from services.accounting_service import list_movements as _list_movements
 from services.alert_service import get_low_stock_alerts as _get_low_stock_alerts
 from services.customer_service import list_customers as _list_customers
 from services.order_service import list_orders as _list_orders
@@ -38,6 +39,11 @@ def load_orders() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=CACHE_TTL, show_spinner=False)
+def load_movements() -> pd.DataFrame:
+    return _list_movements()
+
+
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False)
 def load_low_stock_alerts() -> pd.DataFrame:
     return _get_low_stock_alerts()
 
@@ -47,6 +53,7 @@ def clear_data_cache() -> None:
     load_customers.clear()
     load_sales.clear()
     load_orders.clear()
+    load_movements.clear()
     load_low_stock_alerts.clear()
 
 

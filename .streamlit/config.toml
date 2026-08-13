@@ -1,12 +1,12 @@
 [theme]
 primaryColor = "#828F59"
-backgroundColor = "#FFFFCD"
+backgroundColor = "#F4F3EF"
 secondaryBackgroundColor = "#FFFFFF"
-textColor = "#3D4230"
+textColor = "#3D4035"
 font = "sans serif"
 
 [client]
-toolbarMode = "viewer"
+toolbarMode = "minimal"
 showSidebarNavigation = false
 
 [server]

@@ -19,6 +19,14 @@ SHEET_PRODUCTOS = "Productos"
 SHEET_CLIENTES = "Clientes"
 SHEET_VENTAS = "Ventas"
 SHEET_PEDIDOS = "Pedidos"
+SHEET_CONTABILIDAD = "Contabilidad"
+
+MOVEMENT_TYPE_INCOME = "Ingreso"
+MOVEMENT_TYPE_EXPENSE = "Gasto"
+MOVEMENT_TYPES = [MOVEMENT_TYPE_INCOME, MOVEMENT_TYPE_EXPENSE]
+
+INCOME_CATEGORIES = ["Capital", "Inversión", "Otros ingresos"]
+EXPENSE_CATEGORIES = ["Insumos", "Equipos", "Otros gastos"]
 
 SIZES = ["XS", "S", "M", "L", "XL", "Talla Única"]
 CATEGORIES = ["Ropa", "Accesorio"]
@@ -83,5 +91,16 @@ SHEET_SCHEMAS = {
         "fecha_creacion",
         "fecha_actualizacion",
         "notas",
+    ],
+    SHEET_CONTABILIDAD: [
+        "id",
+        "fecha",
+        "tipo",
+        "categoria",
+        "concepto",
+        "monto",
+        "notas",
+        "fecha_registro",
+        "fecha_actualizacion",
     ],
 }

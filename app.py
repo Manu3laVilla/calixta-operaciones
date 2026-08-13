@@ -5,7 +5,6 @@ import utils.ssl_fix  # noqa: F401 — debe cargarse antes que Google APIs
 from datetime import date, datetime
 
 import pandas as pd
-import plotly.express as px
 import streamlit as st
 
 from config import ALERT_EMAIL_TO, CATEGORIES, DELIVERED_STATE, ORDER_STATES, SIZES
@@ -30,14 +29,29 @@ from ui.cached_data import (
     load_products,
     load_sales,
 )
-from ui.navigation import render_navigation
-from ui.charts import PLOTLY_CONFIG, style_chart
+from ui.components import (
+    dashboard_welcome,
+    page_header,
+    page_section,
+    panel_card,
+    stat_chips,
+)
+from ui.accounting import page_contabilidad
+from ui.navigation import nav_layout
+from ui.charts import (
+    PLOTLY_CONFIG,
+    orders_donut_chart,
+    revenue_monthly_chart,
+    sales_by_category_donut,
+    top_products_chart,
+)
 from ui.styles import CALIXTA_CSS, format_cop
-from ui.theme import CHART_COLORS, ICON_PATH
+
+_PAGE_ICON = "assets/calixta-icon.png"
 
 st.set_page_config(
     page_title="Calixta | Centro de Operaciones",
-    page_icon=ICON_PATH,
+    page_icon=_PAGE_ICON,
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -56,16 +70,6 @@ def init_connection() -> bool:
             f"Detalle: {exc}"
         )
         return False
-
-
-def page_header(title: str, subtitle: str) -> None:
-    st.markdown(
-        f'<div class="glass-page-head">'
-        f'<p class="main-header">{title}</p>'
-        f'<p class="sub-header">{subtitle}</p>'
-        f"</div>",
-        unsafe_allow_html=True,
-    )
 
 
 def _refresh_and_rerun() -> None:
@@ -122,148 +126,284 @@ def _render_cart_editor(key: str, products: pd.DataFrame) -> list[dict]:
     return cart
 
 
-def page_dashboard() -> None:
-    page_header("Dashboard", "Resumen del negocio Calixta")
+def _filter_orders_df(
+    orders: pd.DataFrame,
+    *,
+    fecha_desde: date | None,
+    fecha_hasta: date | None,
+    estado: str,
+) -> pd.DataFrame:
+    if orders.empty:
+        return orders
+    df = orders.copy()
+    if estado != "Todos":
+        df = df[df["estado"] == estado]
+    date_col = "fecha_creacion" if "fecha_creacion" in df.columns else "fecha_entrega"
+    if date_col in df.columns:
+        df["_fecha"] = pd.to_datetime(df[date_col], errors="coerce")
+        if fecha_desde:
+            df = df[df["_fecha"] >= pd.Timestamp(fecha_desde)]
+        if fecha_hasta:
+            df = df[df["_fecha"] <= pd.Timestamp(fecha_hasta) + pd.Timedelta(days=1)]
+        df = df.drop(columns=["_fecha"])
+    return df
 
+
+def _filter_sales_df(
+    sales: pd.DataFrame,
+    products: pd.DataFrame,
+    *,
+    fecha_desde: date | None,
+    fecha_hasta: date | None,
+    categoria: str,
+) -> pd.DataFrame:
+    if sales.empty:
+        return sales
+    df = filter_sales(
+        sales,
+        fecha_desde=fecha_desde.isoformat() if fecha_desde else None,
+        fecha_hasta=fecha_hasta.isoformat() if fecha_hasta else None,
+    )
+    if categoria != "Todas" and not products.empty:
+        merged = df.merge(
+            products[["id", "categoria"]],
+            left_on="producto_id",
+            right_on="id",
+            how="left",
+        )
+        df = merged[merged["categoria"] == categoria]
+    return df
+
+
+def _dashboard_filters(
+    sales: pd.DataFrame,
+    orders: pd.DataFrame,
+) -> tuple[date | None, date | None, str, str]:
+    min_date: date | None = None
+    max_date: date | None = None
+    for df, col in ((sales, "fecha_entrega"), (orders, "fecha_creacion")):
+        if not df.empty and col in df.columns:
+            parsed = pd.to_datetime(df[col], errors="coerce").dropna()
+            if not parsed.empty:
+                dmin, dmax = parsed.min().date(), parsed.max().date()
+                min_date = dmin if min_date is None else min(min_date, dmin)
+                max_date = dmax if max_date is None else max(max_date, dmax)
+
+    today = date.today()
+    default_desde = min_date or today.replace(month=1, day=1)
+    default_hasta = max_date or today
+    range_min = min_date or date(2020, 1, 1)
+    range_max = max_date or today
+
+    with st.container(border=True):
+        st.markdown('<p class="filter-bar-title">Filtros</p>', unsafe_allow_html=True)
+        c1, c2, c3, c4 = st.columns(4, gap="medium")
+        with c1:
+            fecha_desde = st.date_input(
+                "Desde",
+                value=default_desde,
+                min_value=range_min,
+                max_value=range_max,
+                key="dash_fecha_desde",
+            )
+        with c2:
+            fecha_hasta = st.date_input(
+                "Hasta",
+                value=default_hasta,
+                min_value=range_min,
+                max_value=range_max,
+                key="dash_fecha_hasta",
+            )
+        with c3:
+            categoria = st.selectbox(
+                "Categoría",
+                ["Todas", *CATEGORIES],
+                key="dash_categoria",
+            )
+        with c4:
+            estado = st.selectbox(
+                "Estado pedido",
+                ["Todos", *ORDER_STATES],
+                key="dash_estado",
+            )
+
+    if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+        st.warning("La fecha inicial no puede ser posterior a la final.")
+        fecha_desde, fecha_hasta = fecha_hasta, fecha_desde
+
+    return fecha_desde, fecha_hasta, categoria, estado
+
+
+def _sales_by_category(sales: pd.DataFrame, products: pd.DataFrame) -> pd.DataFrame:
+    if sales.empty or products.empty:
+        return pd.DataFrame(columns=["categoria", "subtotal"])
+    merged = sales.merge(
+        products[["id", "categoria"]],
+        left_on="producto_id",
+        right_on="id",
+        how="left",
+    )
+    merged["categoria"] = merged["categoria"].fillna("Sin categoría")
+    return merged.groupby("categoria", as_index=False)["subtotal"].sum()
+
+
+_MESES_ES = [
+    "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+    "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+]
+
+
+def _prepare_monthly_revenue(sales: pd.DataFrame) -> pd.DataFrame:
+    if sales.empty or "fecha_entrega" not in sales.columns:
+        return pd.DataFrame(columns=["mes_label", "subtotal"])
+
+    df = sales.copy()
+    df["_fecha"] = pd.to_datetime(df["fecha_entrega"], errors="coerce")
+    df = df.dropna(subset=["_fecha"])
+    if df.empty:
+        return pd.DataFrame(columns=["mes_label", "subtotal"])
+
+    df["mes_key"] = df["_fecha"].dt.to_period("M")
+    monthly = (
+        df.groupby("mes_key", as_index=False)["subtotal"]
+        .sum()
+        .sort_values("mes_key")
+    )
+    monthly["mes_label"] = monthly["mes_key"].apply(
+        lambda p: f"{_MESES_ES[p.month - 1]} {p.year}"
+    )
+    return monthly[["mes_label", "subtotal"]]
+
+
+def page_dashboard() -> None:
     products = load_products()
-    customers = load_customers()
-    sales = load_sales()
-    orders = load_orders()
+    sales_all = load_sales()
+    orders_all = load_orders()
     alerts = load_low_stock_alerts()
 
-    total_revenue = float(sales["subtotal"].sum()) if not sales.empty else 0.0
-    pending_orders = (
-        len(orders[orders["estado"] != DELIVERED_STATE]) if not orders.empty else 0
+    dashboard_welcome()
+
+    fecha_desde, fecha_hasta, categoria, estado = _dashboard_filters(sales_all, orders_all)
+
+    sales = _filter_sales_df(
+        sales_all, products,
+        fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, categoria=categoria,
+    )
+    orders = _filter_orders_df(
+        orders_all,
+        fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, estado=estado,
     )
 
-    c1, c2, c3, c4, c5 = st.columns(5, gap="small")
-    c1.metric("Productos", len(products))
-    c2.metric("Clientes", len(customers))
-    c3.metric("Ingresos (COP)", format_cop(total_revenue))
-    c4.metric("Pedidos activos", pending_orders)
-    c5.metric("Alertas stock", len(alerts))
+    total_revenue = float(sales["subtotal"].sum()) if not sales.empty else 0.0
+    units_sold = int(sales["cantidad"].sum()) if not sales.empty else 0
+    delivered = len(orders[orders["estado"] == DELIVERED_STATE]) if not orders.empty else 0
+    pending_orders = len(orders[orders["estado"] != DELIVERED_STATE]) if not orders.empty else 0
 
-    left, right = st.columns(2)
+    stat_chips([
+        ("Ingresos", format_cop(total_revenue), "en el período", "terra"),
+        ("Unidades vendidas", str(units_sold), "productos entregados", "olive"),
+        ("Pedidos", str(len(orders)), f"{pending_orders} activos · {delivered} entregados", "sage"),
+        ("Alertas stock", str(len(alerts)), "inventario actual", "pink"),
+    ])
 
-    with left:
-        st.subheader("Ingresos por mes")
-        if sales.empty:
-            st.info("Sin ventas registradas aún.")
-        else:
-            chart_df = sales.copy()
-            chart_df["mes"] = pd.to_datetime(
-                chart_df["fecha_entrega"], errors="coerce"
-            ).dt.to_period("M").astype(str)
-            monthly = chart_df.groupby("mes", as_index=False)["subtotal"].sum()
-            fig = px.bar(
-                monthly,
-                x="mes",
-                y="subtotal",
-                labels={"mes": "Mes", "subtotal": "Ingresos (COP)"},
-                color_discrete_sequence=[CHART_COLORS[0]],
-            )
-            fig.update_layout(
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Plus Jakarta Sans",
-            )
-            style_chart(fig)
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+    st.markdown('<p class="dashboard-section-title">Resumen visual</p>', unsafe_allow_html=True)
 
-    with right:
-        st.subheader("Pedidos por estado")
+    row1_left, row1_right = st.columns(2, gap="medium")
+    row2_left, row2_right = st.columns(2, gap="medium")
+
+    with row1_left:
+        with panel_card("Ingresos por mes", accent="terra"):
+            if sales.empty:
+                st.markdown(
+                    '<p class="chart-empty-msg">Aún no hay ventas registradas.</p>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                monthly = _prepare_monthly_revenue(sales)
+                if monthly.empty:
+                    st.markdown(
+                        '<p class="chart-empty-msg">Aún no hay ventas registradas.</p>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    fig = revenue_monthly_chart(monthly)
+                    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+
+    with row1_right:
+        with panel_card("Pedidos por estado", accent="olive"):
+            if orders.empty:
+                st.markdown(
+                    '<p class="chart-empty-msg">Aún no hay pedidos.</p>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                status_counts = orders["estado"].value_counts().reset_index()
+                status_counts.columns = ["estado", "cantidad"]
+                fig = orders_donut_chart(status_counts)
+                st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+
+    with row2_left:
+        with panel_card("Productos más vendidos", accent="sage"):
+            if sales.empty:
+                st.markdown(
+                    '<p class="chart-empty-msg">Sin datos de ventas.</p>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                top = (
+                    sales.groupby("producto_nombre", as_index=False)["cantidad"]
+                    .sum()
+                    .sort_values("cantidad", ascending=False)
+                    .head(8)
+                )
+                fig = top_products_chart(top)
+                st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+
+    with row2_right:
+        with panel_card("Ventas por categoría", accent="pink"):
+            by_category = _sales_by_category(sales, products)
+            if by_category.empty:
+                st.markdown(
+                    '<p class="chart-empty-msg">Sin ventas por categoría.</p>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                fig = sales_by_category_donut(by_category)
+                st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+
+    with panel_card("Últimos pedidos", accent="cream"):
         if orders.empty:
-            st.info("Sin pedidos registrados.")
+            st.info("Sin pedidos en el período seleccionado.")
         else:
-            status_counts = orders["estado"].value_counts().reset_index()
-            status_counts.columns = ["estado", "cantidad"]
-            fig = px.pie(
-                status_counts,
-                names="estado",
-                values="cantidad",
-                color_discrete_sequence=CHART_COLORS,
+            sort_col = "fecha_creacion" if "fecha_creacion" in orders.columns else "id"
+            recent = orders.sort_values(sort_col, ascending=False).head(5)
+            display = recent[["id", "cliente_nombre", "estado", "total"]].copy()
+            display["total"] = display["total"].apply(
+                lambda v: format_cop(float(v)) if pd.notna(v) else ""
             )
-            fig.update_layout(
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Plus Jakarta Sans",
-            )
-            style_chart(fig)
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
-
-    bottom_left, bottom_right = st.columns(2)
-
-    with bottom_left:
-        st.subheader("Productos más vendidos")
-        if sales.empty:
-            st.info("Sin datos de ventas.")
-        else:
-            top = (
-                sales.groupby("producto_nombre", as_index=False)["cantidad"]
-                .sum()
-                .sort_values("cantidad", ascending=False)
-                .head(8)
-            )
-            fig = px.bar(
-                top,
-                x="cantidad",
-                y="producto_nombre",
-                orientation="h",
-                labels={"producto_nombre": "Producto", "cantidad": "Unidades"},
-                color_discrete_sequence=[CHART_COLORS[1]],
-            )
-            fig.update_layout(
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Plus Jakarta Sans",
-                yaxis={"categoryorder": "total ascending"},
-            )
-            style_chart(fig, height=380)
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
-
-    with bottom_right:
-        st.subheader("Ventas por categoría")
-        if sales.empty or products.empty:
-            st.info("Sin datos suficientes.")
-        else:
-            merged = sales.merge(
-                products[["id", "categoria"]],
-                left_on="producto_id",
-                right_on="id",
-                how="left",
-            )
-            cat = merged.groupby("categoria", as_index=False)["subtotal"].sum()
-            fig = px.bar(
-                cat,
-                x="categoria",
-                y="subtotal",
-                labels={"categoria": "Categoría", "subtotal": "Ingresos (COP)"},
-                color_discrete_sequence=[CHART_COLORS[2]],
-            )
-            fig.update_layout(
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                font_family="Plus Jakarta Sans",
-            )
-            style_chart(fig)
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+            display.columns = ["Pedido", "Cliente", "Estado", "Total"]
+            st.dataframe(display, use_container_width=True, hide_index=True)
 
     if not alerts.empty:
-        st.warning(f"{len(alerts)} producto(s) requieren reposición.")
-        st.dataframe(
-            alerts[
-                ["referencia", "nombre", "talla", "color", "stock", "stock_minimo", "precio"]
-            ],
-            use_container_width=True,
-            hide_index=True,
-        )
-        _render_email_alert_button(alerts)
+        with panel_card("Productos con stock bajo", accent="cream"):
+            st.warning(f"{len(alerts)} producto(s) requieren reposición.")
+            alert_display = alerts.copy()
+            alert_display["precio"] = alert_display["precio"].apply(format_cop)
+            st.dataframe(
+                alert_display[
+                    ["referencia", "nombre", "talla", "color", "stock", "stock_minimo", "precio"]
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+            _render_email_alert_button(alerts)
 
 
 def page_products() -> None:
     page_header("Productos", "Inventario de ropa y accesorios")
 
-    tab_list, tab_new, tab_edit = st.tabs(["Inventario", "Nuevo producto", "Editar producto"])
+    with page_section():
+        tab_list, tab_new, tab_edit = st.tabs(["Inventario", "Nuevo producto", "Editar producto"])
 
     with tab_list:
         products = load_products()
@@ -365,7 +505,8 @@ def page_products() -> None:
 def page_customers() -> None:
     page_header("Clientes", "Cartera de clientes Calixta")
 
-    tab_list, tab_new, tab_edit = st.tabs(["Listado", "Nuevo cliente", "Editar cliente"])
+    with page_section():
+        tab_list, tab_new, tab_edit = st.tabs(["Listado", "Nuevo cliente", "Editar cliente"])
 
     with tab_list:
         customers = load_customers()
@@ -429,9 +570,10 @@ def page_customers() -> None:
 def page_orders() -> None:
     page_header("Pedidos", "Gestión del ciclo de pedidos")
 
-    tab_list, tab_new, tab_edit, tab_status, tab_delete = st.tabs(
-        ["Listado", "Nuevo pedido", "Editar pedido", "Actualizar estado", "Eliminar pedido"]
-    )
+    with page_section():
+        tab_list, tab_new, tab_edit, tab_status, tab_delete = st.tabs(
+            ["Listado", "Nuevo pedido", "Editar pedido", "Actualizar estado", "Eliminar pedido"]
+        )
 
     with tab_list:
         orders = load_orders()
@@ -596,58 +738,68 @@ def page_orders() -> None:
 
 def page_sales() -> None:
     page_header("Ventas", "Historial generado automáticamente al entregar pedidos")
-    st.caption("Las ventas se crean al marcar un pedido como Entregado. No se pueden crear ni editar manualmente.")
 
-    sales = load_sales()
-    customers = load_customers()
-    products = load_products()
-
-    with st.expander("Filtros", expanded=True):
-        c1, c2, c3 = st.columns(3)
-        cliente_filter = c1.selectbox(
-            "Cliente",
-            ["Todos"] + [f"{r['nombre']} ({r['id']})" for _, r in customers.iterrows()],
+    with page_section():
+        st.caption(
+            "Las ventas se crean al marcar un pedido como Entregado. "
+            "No se pueden crear ni editar manualmente."
         )
-        producto_filter = c2.selectbox(
-            "Producto",
-            ["Todos"] + [f"{r['referencia']} | {r['nombre']}" for _, r in products.iterrows()],
+
+        sales = load_sales()
+        customers = load_customers()
+        products = load_products()
+
+        with panel_card("Filtros", accent="sage"):
+            c1, c2, c3 = st.columns(3)
+            cliente_filter = c1.selectbox(
+                "Cliente",
+                ["Todos"] + [f"{r['nombre']} ({r['id']})" for _, r in customers.iterrows()],
+            )
+            producto_filter = c2.selectbox(
+                "Producto",
+                ["Todos"] + [f"{r['referencia']} | {r['nombre']}" for _, r in products.iterrows()],
+            )
+            pedido_filter = c3.text_input("ID de pedido")
+
+            c4, c5 = st.columns(2)
+            use_date_filter = st.checkbox("Filtrar por rango de fechas")
+            fecha_desde_val = c4.date_input(
+                "Desde", value=date.today().replace(day=1), disabled=not use_date_filter
+            )
+            fecha_hasta_val = c5.date_input(
+                "Hasta", value=date.today(), disabled=not use_date_filter
+            )
+
+        cliente_id = None
+        if cliente_filter != "Todos":
+            cliente_id = cliente_filter.split("(")[-1].rstrip(")")
+
+        producto_id = None
+        if producto_filter != "Todos":
+            ref = producto_filter.split(" | ")[0]
+            match = products[products["referencia"] == ref]
+            if not match.empty:
+                producto_id = match.iloc[0]["id"]
+
+        filtered = filter_sales(
+            sales,
+            cliente_id=cliente_id,
+            producto_id=producto_id,
+            pedido_id=pedido_filter or None,
+            fecha_desde=str(fecha_desde_val) if use_date_filter else None,
+            fecha_hasta=str(fecha_hasta_val) + " 23:59:59" if use_date_filter else None,
         )
-        pedido_filter = c3.text_input("ID de pedido")
 
-        c4, c5 = st.columns(2)
-        use_date_filter = st.checkbox("Filtrar por rango de fechas")
-        fecha_desde_val = c4.date_input("Desde", value=date.today().replace(day=1), disabled=not use_date_filter)
-        fecha_hasta_val = c5.date_input("Hasta", value=date.today(), disabled=not use_date_filter)
-
-    cliente_id = None
-    if cliente_filter != "Todos":
-        cliente_id = cliente_filter.split("(")[-1].rstrip(")")
-
-    producto_id = None
-    if producto_filter != "Todos":
-        ref = producto_filter.split(" | ")[0]
-        match = products[products["referencia"] == ref]
-        if not match.empty:
-            producto_id = match.iloc[0]["id"]
-
-    filtered = filter_sales(
-        sales,
-        cliente_id=cliente_id,
-        producto_id=producto_id,
-        pedido_id=pedido_filter or None,
-        fecha_desde=str(fecha_desde_val) if use_date_filter else None,
-        fecha_hasta=str(fecha_hasta_val) + " 23:59:59" if use_date_filter else None,
-    )
-
-    if filtered.empty:
-        st.info("No hay ventas que coincidan con los filtros.")
-    else:
-        total = float(filtered["subtotal"].sum())
-        st.metric("Total filtrado", format_cop(total))
-        display = filtered.copy()
-        display["precio_unitario"] = display["precio_unitario"].apply(format_cop)
-        display["subtotal"] = display["subtotal"].apply(format_cop)
-        st.dataframe(display, use_container_width=True, hide_index=True)
+        with panel_card("Historial de ventas", accent="olive"):
+            if filtered.empty:
+                st.info("No hay ventas que coincidan con los filtros.")
+            else:
+                total = float(filtered["subtotal"].sum())
+                st.metric("Total filtrado", format_cop(total))
+                display = filtered.copy()
+                display["precio_unitario"] = display["precio_unitario"].apply(format_cop)
+                display["subtotal"] = display["subtotal"].apply(format_cop)
+                st.dataframe(display, use_container_width=True, hide_index=True)
 
 
 def _render_email_alert_button(alerts: pd.DataFrame) -> None:
@@ -674,39 +826,41 @@ def _render_email_alert_button(alerts: pd.DataFrame) -> None:
 def page_alerts() -> None:
     page_header("Alertas de stock", "Productos que requieren reposición")
 
-    alerts = load_low_stock_alerts()
-    if alerts.empty:
-        st.success("Todo en orden. No hay productos con stock bajo.")
-    else:
-        st.warning(f"{len(alerts)} producto(s) por debajo del stock mínimo.")
-        display = alerts.copy()
-        display["precio"] = display["precio"].apply(format_cop)
-        st.dataframe(
-            display[
-                ["referencia", "nombre", "talla", "color", "categoria",
-                 "stock", "stock_minimo", "faltante", "precio"]
-            ],
-            use_container_width=True,
-            hide_index=True,
-        )
-        _render_email_alert_button(alerts)
+    with page_section():
+        alerts = load_low_stock_alerts()
+        with panel_card("Inventario crítico", accent="pink"):
+            if alerts.empty:
+                st.success("Todo en orden. No hay productos con stock bajo.")
+            else:
+                st.warning(f"{len(alerts)} producto(s) por debajo del stock mínimo.")
+                display = alerts.copy()
+                display["precio"] = display["precio"].apply(format_cop)
+                st.dataframe(
+                    display[
+                        ["referencia", "nombre", "talla", "color", "categoria",
+                         "stock", "stock_minimo", "faltante", "precio"]
+                    ],
+                    use_container_width=True,
+                    hide_index=True,
+                )
+                _render_email_alert_button(alerts)
 
 
 def main() -> None:
-    page = render_navigation()
+    with nav_layout() as page:
+        if not init_connection():
+            st.stop()
 
-    if not init_connection():
-        st.stop()
-
-    pages = {
-        "dashboard": page_dashboard,
-        "productos": page_products,
-        "clientes": page_customers,
-        "pedidos": page_orders,
-        "ventas": page_sales,
-        "alertas": page_alerts,
-    }
-    pages[page]()
+        pages = {
+            "dashboard": page_dashboard,
+            "productos": page_products,
+            "clientes": page_customers,
+            "pedidos": page_orders,
+            "ventas": page_sales,
+            "contabilidad": page_contabilidad,
+            "alertas": page_alerts,
+        }
+        pages[page]()
 
 
 if __name__ == "__main__":
