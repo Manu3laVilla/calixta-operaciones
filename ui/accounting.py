@@ -324,13 +324,13 @@ def page_contabilidad() -> None:
             "Movimientos",
         ])
 
-    with tab_resumen:
-        _tab_resumen()
-    with tab_ingreso:
-        _tab_nuevo_ingreso()
-    with tab_gasto:
-        _tab_nuevo_gasto()
-    with tab_editar:
-        _tab_editar_movimiento()
-    with tab_movimientos:
-        _tab_movimientos()
+        with tab_resumen:
+            _tab_resumen()
+        with tab_ingreso:
+            _tab_nuevo_ingreso()
+        with tab_gasto:
+            _tab_nuevo_gasto()
+        with tab_editar:
+            _tab_editar_movimiento()
+        with tab_movimientos:
+            _tab_movimientos()

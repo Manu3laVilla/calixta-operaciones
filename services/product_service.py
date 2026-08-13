@@ -4,12 +4,29 @@ from typing import Any
 
 import pandas as pd
 
-from config import CATEGORIES, SHEET_PRODUCTOS, SIZES
-from services.sheets_db import get_db, new_id, now_str
+from config import CATEGORIES, SIZES, TABLE_PRODUCTOS
+from services.supabase_db import get_db, new_id, now_iso
+
+
+def _activo_to_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in ("si", "sí", "true", "1", "yes")
+
+
+def _activo_to_ui(value: Any) -> str:
+    return "Si" if _activo_to_bool(value) else "No"
+
+
+def _normalize_product_row(row: dict[str, Any]) -> dict[str, Any]:
+    data = dict(row)
+    if "activo" in data:
+        data["activo"] = _activo_to_ui(data["activo"])
+    return data
 
 
 def list_products(active_only: bool = False) -> pd.DataFrame:
-    df = get_db().get_dataframe(SHEET_PRODUCTOS)
+    df = get_db().get_dataframe(TABLE_PRODUCTOS)
     if df.empty:
         return df
 
@@ -18,18 +35,20 @@ def list_products(active_only: bool = False) -> pd.DataFrame:
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
     if active_only and "activo" in df.columns:
-        df = df[df["activo"].astype(str).str.lower().isin(["si", "sí", "true", "1", "yes"])]
+        df = df[df["activo"].map(_activo_to_bool)]
+
+    if "activo" in df.columns:
+        df = df.copy()
+        df["activo"] = df["activo"].map(_activo_to_ui)
+
     return df
 
 
 def get_product(product_id: str) -> dict[str, Any] | None:
-    df = list_products()
-    if df.empty:
+    product = get_db().get_by_id(TABLE_PRODUCTOS, product_id)
+    if product is None:
         return None
-    match = df[df["id"].astype(str) == str(product_id)]
-    if match.empty:
-        return None
-    return match.iloc[0].to_dict()
+    return _normalize_product_row(product)
 
 
 def product_label(product: dict[str, Any]) -> str:
@@ -69,31 +88,33 @@ def create_product(
         "stock": int(stock),
         "stock_minimo": int(stock_minimo),
         "precio": float(precio),
-        "activo": "Si",
-        "fecha_registro": now_str(),
+        "activo": True,
+        "fecha_registro": now_iso(),
     }
-    get_db().append_row(SHEET_PRODUCTOS, list(product.values()))
-    return product
+    created = get_db().insert(TABLE_PRODUCTOS, product)
+    return _normalize_product_row(created)
 
 
 def update_product(product_id: str, updates: dict[str, Any]) -> bool:
-    db = get_db()
-    row_number = db.find_row_number(SHEET_PRODUCTOS, "id", product_id)
-    if row_number is None:
-        return False
-
-    product = get_product(product_id)
+    product = get_db().get_by_id(TABLE_PRODUCTOS, product_id)
     if product is None:
         return False
 
-    if "talla" in updates and updates["talla"] not in SIZES:
+    payload = dict(updates)
+    if "talla" in payload and payload["talla"] not in SIZES:
         raise ValueError(f"Talla inválida. Opciones: {', '.join(SIZES)}")
-    if "categoria" in updates and updates["categoria"] not in CATEGORIES:
+    if "categoria" in payload and payload["categoria"] not in CATEGORIES:
         raise ValueError(f"Categoría inválida. Opciones: {', '.join(CATEGORIES)}")
+    if "activo" in payload:
+        payload["activo"] = _activo_to_bool(payload["activo"])
 
-    product.update(updates)
-    db.update_row(SHEET_PRODUCTOS, row_number, list(product.values()))
-    return True
+    for key in ("stock", "stock_minimo"):
+        if key in payload:
+            payload[key] = int(payload[key])
+    if "precio" in payload:
+        payload["precio"] = float(payload["precio"])
+
+    return get_db().update_by_id(TABLE_PRODUCTOS, product_id, payload)
 
 
 def adjust_stock(product_id: str, delta: int) -> bool:

@@ -4,22 +4,16 @@ from typing import Any
 
 import pandas as pd
 
-from config import SHEET_CLIENTES
-from services.sheets_db import get_db, new_id, now_str
+from config import TABLE_CLIENTES
+from services.supabase_db import get_db, new_id, now_iso
 
 
 def list_customers() -> pd.DataFrame:
-    return get_db().get_dataframe(SHEET_CLIENTES)
+    return get_db().get_dataframe(TABLE_CLIENTES)
 
 
 def get_customer(customer_id: str) -> dict[str, Any] | None:
-    df = list_customers()
-    if df.empty:
-        return None
-    match = df[df["id"].astype(str) == str(customer_id)]
-    if match.empty:
-        return None
-    return match.iloc[0].to_dict()
+    return get_db().get_by_id(TABLE_CLIENTES, customer_id)
 
 
 def create_customer(
@@ -36,22 +30,12 @@ def create_customer(
         "telefono": telefono.strip(),
         "direccion": direccion.strip(),
         "notas": notas.strip(),
-        "fecha_registro": now_str(),
+        "fecha_registro": now_iso(),
     }
-    get_db().append_row(SHEET_CLIENTES, list(customer.values()))
-    return customer
+    return get_db().insert(TABLE_CLIENTES, customer)
 
 
 def update_customer(customer_id: str, updates: dict[str, Any]) -> bool:
-    db = get_db()
-    row_number = db.find_row_number(SHEET_CLIENTES, "id", customer_id)
-    if row_number is None:
+    if get_customer(customer_id) is None:
         return False
-
-    customer = get_customer(customer_id)
-    if customer is None:
-        return False
-
-    customer.update(updates)
-    db.update_row(SHEET_CLIENTES, row_number, list(customer.values()))
-    return True
+    return get_db().update_by_id(TABLE_CLIENTES, customer_id, updates)

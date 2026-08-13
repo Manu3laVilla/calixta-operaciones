@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import utils.ssl_fix  # noqa: F401 — debe cargarse antes que Google APIs
+import utils.ssl_fix  # noqa: F401 — parche SSL para Windows
 
 from datetime import date, datetime
 
@@ -18,7 +18,7 @@ from services.order_service import (
     update_order_status,
 )
 from services.product_service import create_product, product_label, update_product
-from services.sheets_db import get_db
+from services.supabase_db import get_db
 from ui.cached_data import (
     clear_data_cache,
     filter_sales,
@@ -45,7 +45,7 @@ from ui.charts import (
     sales_by_category_donut,
     top_products_chart,
 )
-from ui.styles import CALIXTA_CSS, format_cop
+from ui.styles import CALIXTA_CSS, CALIXTA_MODULE_TABS_CSS, format_cop
 
 _PAGE_ICON = "assets/calixta-icon.png"
 
@@ -57,6 +57,7 @@ st.set_page_config(
 )
 
 st.markdown(CALIXTA_CSS, unsafe_allow_html=True)
+st.markdown(CALIXTA_MODULE_TABS_CSS, unsafe_allow_html=True)
 
 
 def init_connection() -> bool:
@@ -64,9 +65,10 @@ def init_connection() -> bool:
         get_db().connect()
         return True
     except Exception as exc:
-        st.error("No se pudo conectar con Google Sheets")
+        st.error("No se pudo conectar con Supabase")
         st.info(
-            "Configura tu archivo `.env` y las credenciales siguiendo el README. "
+            "Configura SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en `.env` (local) "
+            "o en Streamlit Secrets (cloud). "
             f"Detalle: {exc}"
         )
         return False
@@ -405,101 +407,101 @@ def page_products() -> None:
     with page_section():
         tab_list, tab_new, tab_edit = st.tabs(["Inventario", "Nuevo producto", "Editar producto"])
 
-    with tab_list:
-        products = load_products()
-        if products.empty:
-            st.info("No hay productos registrados.")
-        else:
-            display = products.copy()
-            if "precio" in display.columns:
-                display["precio"] = display["precio"].apply(format_cop)
-            st.dataframe(display, use_container_width=True, hide_index=True)
+        with tab_list:
+            products = load_products()
+            if products.empty:
+                st.info("No hay productos registrados.")
+            else:
+                display = products.copy()
+                if "precio" in display.columns:
+                    display["precio"] = display["precio"].apply(format_cop)
+                st.dataframe(display, use_container_width=True, hide_index=True)
 
-    with tab_new:
-        with st.form("new_product_form", clear_on_submit=True):
-            c1, c2 = st.columns(2)
-            referencia = c1.text_input("Referencia *")
-            nombre = c2.text_input("Nombre *")
-            c3, c4, c5 = st.columns(3)
-            color = c3.text_input("Color *")
-            talla = c4.selectbox("Talla *", SIZES)
-            categoria = c5.selectbox("Categoría *", CATEGORIES)
-            descripcion = st.text_area("Descripción")
-            c6, c7, c8 = st.columns(3)
-            stock = c6.number_input("Stock inicial", min_value=0, step=1)
-            stock_minimo = c7.number_input("Stock mínimo alerta", min_value=0, step=1)
-            precio = c8.number_input("Precio (COP)", min_value=0, step=1000, format="%d")
-
-            if st.form_submit_button("Guardar producto", type="primary"):
-                if not referencia.strip() or not nombre.strip() or not color.strip():
-                    st.error("Referencia, nombre y color son obligatorios.")
-                else:
-                    product = create_product(
-                        referencia, nombre, color, talla, categoria,
-                        descripcion, stock, stock_minimo, precio,
-                    )
-                    st.success(f"Producto creado: {product['nombre']} ({product['id']})")
-                    _refresh_and_rerun()
-
-    with tab_edit:
-        products = load_products()
-        if products.empty:
-            st.info("Primero registra productos.")
-        else:
-            options = {
-                f"{row['referencia']} | {row['nombre']} ({row['id']})": row["id"]
-                for _, row in products.iterrows()
-            }
-            selected = st.selectbox("Selecciona producto", list(options.keys()))
-            product_id = options[selected]
-            current = products[products["id"] == product_id].iloc[0]
-
-            with st.form("edit_product_form"):
+        with tab_new:
+            with st.form("new_product_form", clear_on_submit=True):
                 c1, c2 = st.columns(2)
-                referencia = c1.text_input("Referencia", value=str(current.get("referencia", "")))
-                nombre = c2.text_input("Nombre", value=str(current["nombre"]))
+                referencia = c1.text_input("Referencia *")
+                nombre = c2.text_input("Nombre *")
                 c3, c4, c5 = st.columns(3)
-                color = c3.text_input("Color", value=str(current.get("color", "")))
-                talla = c4.selectbox(
-                    "Talla", SIZES,
-                    index=SIZES.index(current["talla"]) if current.get("talla") in SIZES else 0,
-                )
-                categoria = c5.selectbox(
-                    "Categoría", CATEGORIES,
-                    index=CATEGORIES.index(current["categoria"])
-                    if current.get("categoria") in CATEGORIES else 0,
-                )
-                descripcion = st.text_area(
-                    "Descripción", value=str(current.get("descripcion", ""))
-                )
-                c6, c7, c8, c9 = st.columns(4)
-                stock = c6.number_input("Stock", value=int(current.get("stock", 0)))
-                stock_minimo = c7.number_input(
-                    "Stock mínimo", value=int(current.get("stock_minimo", 0))
-                )
-                precio = c8.number_input(
-                    "Precio (COP)", value=int(current.get("precio", 0)), step=1000, format="%d"
-                )
-                activo = c9.selectbox("Activo", ["Si", "No"])
+                color = c3.text_input("Color *")
+                talla = c4.selectbox("Talla *", SIZES)
+                categoria = c5.selectbox("Categoría *", CATEGORIES)
+                descripcion = st.text_area("Descripción")
+                c6, c7, c8 = st.columns(3)
+                stock = c6.number_input("Stock inicial", min_value=0, step=1)
+                stock_minimo = c7.number_input("Stock mínimo alerta", min_value=0, step=1)
+                precio = c8.number_input("Precio (COP)", min_value=0, step=1000, format="%d")
 
-                if st.form_submit_button("Actualizar", type="primary"):
-                    update_product(
-                        product_id,
-                        {
-                            "referencia": referencia,
-                            "nombre": nombre,
-                            "color": color,
-                            "talla": talla,
-                            "categoria": categoria,
-                            "descripcion": descripcion,
-                            "stock": stock,
-                            "stock_minimo": stock_minimo,
-                            "precio": precio,
-                            "activo": activo,
-                        },
+                if st.form_submit_button("Guardar producto", type="primary"):
+                    if not referencia.strip() or not nombre.strip() or not color.strip():
+                        st.error("Referencia, nombre y color son obligatorios.")
+                    else:
+                        product = create_product(
+                            referencia, nombre, color, talla, categoria,
+                            descripcion, stock, stock_minimo, precio,
+                        )
+                        st.success(f"Producto creado: {product['nombre']} ({product['id']})")
+                        _refresh_and_rerun()
+
+        with tab_edit:
+            products = load_products()
+            if products.empty:
+                st.info("Primero registra productos.")
+            else:
+                options = {
+                    f"{row['referencia']} | {row['nombre']} ({row['id']})": row["id"]
+                    for _, row in products.iterrows()
+                }
+                selected = st.selectbox("Selecciona producto", list(options.keys()))
+                product_id = options[selected]
+                current = products[products["id"] == product_id].iloc[0]
+
+                with st.form("edit_product_form"):
+                    c1, c2 = st.columns(2)
+                    referencia = c1.text_input("Referencia", value=str(current.get("referencia", "")))
+                    nombre = c2.text_input("Nombre", value=str(current["nombre"]))
+                    c3, c4, c5 = st.columns(3)
+                    color = c3.text_input("Color", value=str(current.get("color", "")))
+                    talla = c4.selectbox(
+                        "Talla", SIZES,
+                        index=SIZES.index(current["talla"]) if current.get("talla") in SIZES else 0,
                     )
-                    st.success("Producto actualizado.")
-                    _refresh_and_rerun()
+                    categoria = c5.selectbox(
+                        "Categoría", CATEGORIES,
+                        index=CATEGORIES.index(current["categoria"])
+                        if current.get("categoria") in CATEGORIES else 0,
+                    )
+                    descripcion = st.text_area(
+                        "Descripción", value=str(current.get("descripcion", ""))
+                    )
+                    c6, c7, c8, c9 = st.columns(4)
+                    stock = c6.number_input("Stock", value=int(current.get("stock", 0)))
+                    stock_minimo = c7.number_input(
+                        "Stock mínimo", value=int(current.get("stock_minimo", 0))
+                    )
+                    precio = c8.number_input(
+                        "Precio (COP)", value=int(current.get("precio", 0)), step=1000, format="%d"
+                    )
+                    activo = c9.selectbox("Activo", ["Si", "No"])
+
+                    if st.form_submit_button("Actualizar", type="primary"):
+                        update_product(
+                            product_id,
+                            {
+                                "referencia": referencia,
+                                "nombre": nombre,
+                                "color": color,
+                                "talla": talla,
+                                "categoria": categoria,
+                                "descripcion": descripcion,
+                                "stock": stock,
+                                "stock_minimo": stock_minimo,
+                                "precio": precio,
+                                "activo": activo,
+                            },
+                        )
+                        st.success("Producto actualizado.")
+                        _refresh_and_rerun()
 
 
 def page_customers() -> None:
@@ -508,63 +510,63 @@ def page_customers() -> None:
     with page_section():
         tab_list, tab_new, tab_edit = st.tabs(["Listado", "Nuevo cliente", "Editar cliente"])
 
-    with tab_list:
-        customers = load_customers()
-        if customers.empty:
-            st.info("No hay clientes registrados.")
-        else:
-            st.dataframe(customers, use_container_width=True, hide_index=True)
+        with tab_list:
+            customers = load_customers()
+            if customers.empty:
+                st.info("No hay clientes registrados.")
+            else:
+                st.dataframe(customers, use_container_width=True, hide_index=True)
 
-    with tab_new:
-        with st.form("new_customer_form", clear_on_submit=True):
-            nombre = st.text_input("Nombre *")
-            c1, c2 = st.columns(2)
-            email = c1.text_input("Email")
-            telefono = c2.text_input("Teléfono")
-            direccion = st.text_input("Dirección")
-            notas = st.text_area("Notas")
-
-            if st.form_submit_button("Guardar cliente", type="primary"):
-                if not nombre.strip():
-                    st.error("El nombre es obligatorio.")
-                else:
-                    customer = create_customer(nombre, email, telefono, direccion, notas)
-                    st.success(f"Cliente creado: {customer['nombre']} ({customer['id']})")
-                    _refresh_and_rerun()
-
-    with tab_edit:
-        customers = load_customers()
-        if customers.empty:
-            st.info("Primero registra clientes.")
-        else:
-            options = {
-                f"{row['nombre']} ({row['id']})": row["id"] for _, row in customers.iterrows()
-            }
-            selected = st.selectbox("Selecciona cliente", list(options.keys()))
-            customer_id = options[selected]
-            current = customers[customers["id"] == customer_id].iloc[0]
-
-            with st.form("edit_customer_form"):
-                nombre = st.text_input("Nombre", value=str(current["nombre"]))
+        with tab_new:
+            with st.form("new_customer_form", clear_on_submit=True):
+                nombre = st.text_input("Nombre *")
                 c1, c2 = st.columns(2)
-                email = c1.text_input("Email", value=str(current.get("email", "")))
-                telefono = c2.text_input("Teléfono", value=str(current.get("telefono", "")))
-                direccion = st.text_input("Dirección", value=str(current.get("direccion", "")))
-                notas = st.text_area("Notas", value=str(current.get("notas", "")))
+                email = c1.text_input("Email")
+                telefono = c2.text_input("Teléfono")
+                direccion = st.text_input("Dirección")
+                notas = st.text_area("Notas")
 
-                if st.form_submit_button("Actualizar", type="primary"):
-                    update_customer(
-                        customer_id,
-                        {
-                            "nombre": nombre,
-                            "email": email,
-                            "telefono": telefono,
-                            "direccion": direccion,
-                            "notas": notas,
-                        },
-                    )
-                    st.success("Cliente actualizado.")
-                    _refresh_and_rerun()
+                if st.form_submit_button("Guardar cliente", type="primary"):
+                    if not nombre.strip():
+                        st.error("El nombre es obligatorio.")
+                    else:
+                        customer = create_customer(nombre, email, telefono, direccion, notas)
+                        st.success(f"Cliente creado: {customer['nombre']} ({customer['id']})")
+                        _refresh_and_rerun()
+
+        with tab_edit:
+            customers = load_customers()
+            if customers.empty:
+                st.info("Primero registra clientes.")
+            else:
+                options = {
+                    f"{row['nombre']} ({row['id']})": row["id"] for _, row in customers.iterrows()
+                }
+                selected = st.selectbox("Selecciona cliente", list(options.keys()))
+                customer_id = options[selected]
+                current = customers[customers["id"] == customer_id].iloc[0]
+
+                with st.form("edit_customer_form"):
+                    nombre = st.text_input("Nombre", value=str(current["nombre"]))
+                    c1, c2 = st.columns(2)
+                    email = c1.text_input("Email", value=str(current.get("email", "")))
+                    telefono = c2.text_input("Teléfono", value=str(current.get("telefono", "")))
+                    direccion = st.text_input("Dirección", value=str(current.get("direccion", "")))
+                    notas = st.text_area("Notas", value=str(current.get("notas", "")))
+
+                    if st.form_submit_button("Actualizar", type="primary"):
+                        update_customer(
+                            customer_id,
+                            {
+                                "nombre": nombre,
+                                "email": email,
+                                "telefono": telefono,
+                                "direccion": direccion,
+                                "notas": notas,
+                            },
+                        )
+                        st.success("Cliente actualizado.")
+                        _refresh_and_rerun()
 
 
 def page_orders() -> None:
@@ -575,165 +577,165 @@ def page_orders() -> None:
             ["Listado", "Nuevo pedido", "Editar pedido", "Actualizar estado", "Eliminar pedido"]
         )
 
-    with tab_list:
-        orders = load_orders()
-        if orders.empty:
-            st.info("No hay pedidos registrados.")
-        else:
-            display = orders.drop(columns=["items_json"], errors="ignore").copy()
-            if "total" in display.columns:
-                display["total"] = display["total"].apply(format_cop)
-            st.dataframe(display, use_container_width=True, hide_index=True)
+        with tab_list:
+            orders = load_orders()
+            if orders.empty:
+                st.info("No hay pedidos registrados.")
+            else:
+                display = orders.drop(columns=["items_json"], errors="ignore").copy()
+                if "total" in display.columns:
+                    display["total"] = display["total"].apply(format_cop)
+                st.dataframe(display, use_container_width=True, hide_index=True)
 
-    with tab_new:
-        customers = load_customers()
-        products = load_products(active_only=True)
+        with tab_new:
+            customers = load_customers()
+            products = load_products(active_only=True)
 
-        if customers.empty:
-            st.warning("Registra al menos un cliente.")
-        else:
-            customer_options = {
-                f"{row['nombre']} ({row['id']})": (row["id"], row["nombre"])
-                for _, row in customers.iterrows()
-            }
-            customer_label = st.selectbox("Cliente", list(customer_options.keys()), key="new_order_client")
-            direccion = st.text_input("Dirección de entrega *", key="new_order_address")
-            notas = st.text_area("Notas", key="new_order_notes")
-            st.markdown("**Productos del pedido**")
-            cart = _render_cart_editor("new_order_cart", products)
+            if customers.empty:
+                st.warning("Registra al menos un cliente.")
+            else:
+                customer_options = {
+                    f"{row['nombre']} ({row['id']})": (row["id"], row["nombre"])
+                    for _, row in customers.iterrows()
+                }
+                customer_label = st.selectbox("Cliente", list(customer_options.keys()), key="new_order_client")
+                direccion = st.text_input("Dirección de entrega *", key="new_order_address")
+                notas = st.text_area("Notas", key="new_order_notes")
+                st.markdown("**Productos del pedido**")
+                cart = _render_cart_editor("new_order_cart", products)
 
-            if st.button("Crear pedido", type="primary", key="create_order_btn"):
-                if not direccion.strip():
-                    st.error("La dirección de entrega es obligatoria.")
-                elif not cart:
-                    st.error("Agrega al menos un producto.")
-                else:
+                if st.button("Crear pedido", type="primary", key="create_order_btn"):
+                    if not direccion.strip():
+                        st.error("La dirección de entrega es obligatoria.")
+                    elif not cart:
+                        st.error("Agrega al menos un producto.")
+                    else:
+                        cliente_id, cliente_nombre = customer_options[customer_label]
+                        try:
+                            order = create_order(
+                                cliente_id, cliente_nombre, cart, direccion, notas
+                            )
+                            st.session_state["new_order_cart"] = []
+                            st.success(
+                                f"Pedido {order['id']} creado — Total {format_cop(order['total'])}"
+                            )
+                            _refresh_and_rerun()
+                        except Exception as exc:
+                            st.error(str(exc))
+
+        with tab_edit:
+            orders = load_orders()
+            editable = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
+            products = load_products(active_only=True)
+            customers = load_customers()
+
+            if editable.empty:
+                st.info("No hay pedidos editables (los entregados no se pueden modificar).")
+            else:
+                options = {
+                    f"{row['id']} | {row['cliente_nombre']} | {row['estado']}": row["id"]
+                    for _, row in editable.iterrows()
+                }
+                selected = st.selectbox("Selecciona pedido", list(options.keys()), key="edit_order_sel")
+                order_id = options[selected]
+                order = orders[orders["id"] == order_id].iloc[0]
+
+                customer_options = {
+                    f"{row['nombre']} ({row['id']})": (row["id"], row["nombre"])
+                    for _, row in customers.iterrows()
+                }
+                default_customer = f"{order['cliente_nombre']} ({order['cliente_id']})"
+                customer_labels = list(customer_options.keys())
+                default_idx = customer_labels.index(default_customer) if default_customer in customer_labels else 0
+
+                customer_label = st.selectbox("Cliente", customer_labels, index=default_idx, key="edit_order_client")
+                direccion = st.text_input(
+                    "Dirección de entrega",
+                    value=str(order.get("direccion_entrega", "")),
+                    key="edit_order_address",
+                )
+                notas = st.text_area("Notas", value=str(order.get("notas", "")), key="edit_order_notes")
+
+                if "edit_order_cart" not in st.session_state or st.session_state.get("edit_order_loaded") != order_id:
+                    st.session_state["edit_order_cart"] = [
+                        {"producto_id": i["producto_id"], "cantidad": i["cantidad"]}
+                        for i in get_order_items_cached(order_id)
+                    ]
+                    st.session_state["edit_order_loaded"] = order_id
+
+                st.markdown("**Productos del pedido**")
+                cart = _render_cart_editor("edit_order_cart", products)
+
+                if st.button("Guardar cambios", type="primary", key="save_order_btn"):
                     cliente_id, cliente_nombre = customer_options[customer_label]
                     try:
-                        order = create_order(
-                            cliente_id, cliente_nombre, cart, direccion, notas
+                        update_order(
+                            order_id, cliente_id, cliente_nombre, cart, direccion, notas
                         )
-                        st.session_state["new_order_cart"] = []
-                        st.success(
-                            f"Pedido {order['id']} creado — Total {format_cop(order['total'])}"
-                        )
+                        st.success(f"Pedido {order_id} actualizado.")
                         _refresh_and_rerun()
                     except Exception as exc:
                         st.error(str(exc))
 
-    with tab_edit:
-        orders = load_orders()
-        editable = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
-        products = load_products(active_only=True)
-        customers = load_customers()
+        with tab_status:
+            orders = load_orders()
+            pending = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
 
-        if editable.empty:
-            st.info("No hay pedidos editables (los entregados no se pueden modificar).")
-        else:
-            options = {
-                f"{row['id']} | {row['cliente_nombre']} | {row['estado']}": row["id"]
-                for _, row in editable.iterrows()
-            }
-            selected = st.selectbox("Selecciona pedido", list(options.keys()), key="edit_order_sel")
-            order_id = options[selected]
-            order = orders[orders["id"] == order_id].iloc[0]
+            if pending.empty:
+                st.info("No hay pedidos pendientes de actualizar.")
+            else:
+                options = {
+                    f"{row['id']} | {row['cliente_nombre']} | {row['estado']}": row["id"]
+                    for _, row in pending.iterrows()
+                }
+                selected = st.selectbox("Selecciona pedido", list(options.keys()), key="status_order_sel")
+                order_id = options[selected]
+                items = get_order_items_cached(order_id)
 
-            customer_options = {
-                f"{row['nombre']} ({row['id']})": (row["id"], row["nombre"])
-                for _, row in customers.iterrows()
-            }
-            default_customer = f"{order['cliente_nombre']} ({order['cliente_id']})"
-            customer_labels = list(customer_options.keys())
-            default_idx = customer_labels.index(default_customer) if default_customer in customer_labels else 0
+                if items:
+                    st.dataframe(pd.DataFrame(items), use_container_width=True, hide_index=True)
 
-            customer_label = st.selectbox("Cliente", customer_labels, index=default_idx, key="edit_order_client")
-            direccion = st.text_input(
-                "Dirección de entrega",
-                value=str(order.get("direccion_entrega", "")),
-                key="edit_order_address",
-            )
-            notas = st.text_area("Notas", value=str(order.get("notas", "")), key="edit_order_notes")
+                current = orders[orders["id"] == order_id].iloc[0]
+                st.caption(f"Dirección: {current.get('direccion_entrega', '')}")
 
-            if "edit_order_cart" not in st.session_state or st.session_state.get("edit_order_loaded") != order_id:
-                st.session_state["edit_order_cart"] = [
-                    {"producto_id": i["producto_id"], "cantidad": i["cantidad"]}
-                    for i in get_order_items_cached(order_id)
-                ]
-                st.session_state["edit_order_loaded"] = order_id
+                new_status = st.selectbox("Nuevo estado", ORDER_STATES, key="new_status_sel")
+                fecha_entrega = None
+                if new_status == DELIVERED_STATE:
+                    c1, c2 = st.columns(2)
+                    entrega_date = c1.date_input("Fecha de entrega", value=date.today())
+                    entrega_time = c2.time_input("Hora de entrega", value=datetime.now().time())
+                    fecha_entrega = f"{entrega_date} {entrega_time.strftime('%H:%M:%S')}"
 
-            st.markdown("**Productos del pedido**")
-            cart = _render_cart_editor("edit_order_cart", products)
+                if st.button("Actualizar estado", type="primary", key="update_status_btn"):
+                    try:
+                        update_order_status(order_id, new_status, fecha_entrega)
+                        st.success(f"Pedido {order_id} → {new_status}")
+                        _refresh_and_rerun()
+                    except Exception as exc:
+                        st.error(str(exc))
 
-            if st.button("Guardar cambios", type="primary", key="save_order_btn"):
-                cliente_id, cliente_nombre = customer_options[customer_label]
-                try:
-                    update_order(
-                        order_id, cliente_id, cliente_nombre, cart, direccion, notas
-                    )
-                    st.success(f"Pedido {order_id} actualizado.")
-                    _refresh_and_rerun()
-                except Exception as exc:
-                    st.error(str(exc))
+        with tab_delete:
+            orders = load_orders()
+            deletable = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
 
-    with tab_status:
-        orders = load_orders()
-        pending = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
+            if deletable.empty:
+                st.info("No hay pedidos que se puedan eliminar.")
+            else:
+                options = {
+                    f"{row['id']} | {row['cliente_nombre']} | {row['estado']}": row["id"]
+                    for _, row in deletable.iterrows()
+                }
+                selected = st.selectbox("Selecciona pedido", list(options.keys()), key="delete_order_sel")
+                order_id = options[selected]
+                st.warning("Esta acción no se puede deshacer.")
 
-        if pending.empty:
-            st.info("No hay pedidos pendientes de actualizar.")
-        else:
-            options = {
-                f"{row['id']} | {row['cliente_nombre']} | {row['estado']}": row["id"]
-                for _, row in pending.iterrows()
-            }
-            selected = st.selectbox("Selecciona pedido", list(options.keys()), key="status_order_sel")
-            order_id = options[selected]
-            items = get_order_items_cached(order_id)
-
-            if items:
-                st.dataframe(pd.DataFrame(items), use_container_width=True, hide_index=True)
-
-            current = orders[orders["id"] == order_id].iloc[0]
-            st.caption(f"Dirección: {current.get('direccion_entrega', '')}")
-
-            new_status = st.selectbox("Nuevo estado", ORDER_STATES, key="new_status_sel")
-            fecha_entrega = None
-            if new_status == DELIVERED_STATE:
-                c1, c2 = st.columns(2)
-                entrega_date = c1.date_input("Fecha de entrega", value=date.today())
-                entrega_time = c2.time_input("Hora de entrega", value=datetime.now().time())
-                fecha_entrega = f"{entrega_date} {entrega_time.strftime('%H:%M:%S')}"
-
-            if st.button("Actualizar estado", type="primary", key="update_status_btn"):
-                try:
-                    update_order_status(order_id, new_status, fecha_entrega)
-                    st.success(f"Pedido {order_id} → {new_status}")
-                    _refresh_and_rerun()
-                except Exception as exc:
-                    st.error(str(exc))
-
-    with tab_delete:
-        orders = load_orders()
-        deletable = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
-
-        if deletable.empty:
-            st.info("No hay pedidos que se puedan eliminar.")
-        else:
-            options = {
-                f"{row['id']} | {row['cliente_nombre']} | {row['estado']}": row["id"]
-                for _, row in deletable.iterrows()
-            }
-            selected = st.selectbox("Selecciona pedido", list(options.keys()), key="delete_order_sel")
-            order_id = options[selected]
-            st.warning("Esta acción no se puede deshacer.")
-
-            if st.button("Eliminar pedido", type="primary", key="delete_order_btn"):
-                try:
-                    delete_order(order_id)
-                    st.success(f"Pedido {order_id} eliminado.")
-                    _refresh_and_rerun()
-                except Exception as exc:
-                    st.error(str(exc))
+                if st.button("Eliminar pedido", type="primary", key="delete_order_btn"):
+                    try:
+                        delete_order(order_id)
+                        st.success(f"Pedido {order_id} eliminado.")
+                        _refresh_and_rerun()
+                    except Exception as exc:
+                        st.error(str(exc))
 
 
 def page_sales() -> None:

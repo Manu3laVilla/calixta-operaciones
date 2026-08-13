@@ -4,8 +4,8 @@ from typing import Any
 
 import pandas as pd
 
-from config import SHEET_VENTAS
-from services.sheets_db import get_db, new_id
+from config import TABLE_VENTAS
+from services.supabase_db import get_db, new_id, now_iso
 
 
 def list_sales(
@@ -15,7 +15,7 @@ def list_sales(
     fecha_desde: str | None = None,
     fecha_hasta: str | None = None,
 ) -> pd.DataFrame:
-    df = get_db().get_dataframe(SHEET_VENTAS)
+    df = get_db().get_dataframe(TABLE_VENTAS)
     if df.empty:
         return df
 
@@ -66,5 +66,4 @@ def create_sale_from_order(
         "precio_unitario": float(precio_unitario),
         "subtotal": subtotal,
     }
-    get_db().append_row(SHEET_VENTAS, list(sale.values()))
-    return sale
+    return get_db().insert(TABLE_VENTAS, sale)

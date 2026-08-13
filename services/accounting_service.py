@@ -5,17 +5,18 @@ from typing import Any
 import pandas as pd
 
 from config import (
+    DELIVERED_STATE,
     EXPENSE_CATEGORIES,
     INCOME_CATEGORIES,
     MOVEMENT_TYPE_EXPENSE,
     MOVEMENT_TYPE_INCOME,
-    SHEET_CONTABILIDAD,
+    TABLE_CONTABILIDAD,
 )
-from services.sheets_db import get_db, new_id, now_str
+from services.supabase_db import get_db, new_id, now_iso
 
 
 def list_movements() -> pd.DataFrame:
-    df = get_db().get_dataframe(SHEET_CONTABILIDAD)
+    df = get_db().get_dataframe(TABLE_CONTABILIDAD)
     if df.empty:
         return df
     df = df.copy()
@@ -26,13 +27,7 @@ def list_movements() -> pd.DataFrame:
 
 
 def get_movement(movement_id: str) -> dict[str, Any] | None:
-    df = list_movements()
-    if df.empty:
-        return None
-    match = df[df["id"].astype(str) == str(movement_id)]
-    if match.empty:
-        return None
-    return match.iloc[0].to_dict()
+    return get_db().get_by_id(TABLE_CONTABILIDAD, movement_id)
 
 
 def _normalize_fecha(fecha: str) -> str:
@@ -59,7 +54,7 @@ def create_movement(
     if categoria not in valid_categories:
         raise ValueError("Categoría inválida para el tipo de movimiento.")
 
-    timestamp = now_str()
+    timestamp = now_iso()
     movement = {
         "id": new_id("FIN"),
         "fecha": _normalize_fecha(fecha),
@@ -71,37 +66,31 @@ def create_movement(
         "fecha_registro": timestamp,
         "fecha_actualizacion": timestamp,
     }
-    get_db().append_row(SHEET_CONTABILIDAD, list(movement.values()))
-    return movement
+    return get_db().insert(TABLE_CONTABILIDAD, movement)
 
 
 def update_movement(movement_id: str, updates: dict[str, Any]) -> bool:
-    db = get_db()
-    row_number = db.find_row_number(SHEET_CONTABILIDAD, "id", movement_id)
-    if row_number is None:
-        return False
-
     movement = get_movement(movement_id)
     if movement is None:
         return False
 
-    if "tipo" in updates:
-        tipo = str(updates["tipo"])
-        categoria = str(updates.get("categoria", movement.get("categoria", "")))
+    payload = dict(updates)
+
+    if "tipo" in payload:
+        tipo = str(payload["tipo"])
+        categoria = str(payload.get("categoria", movement.get("categoria", "")))
         valid = INCOME_CATEGORIES if tipo == MOVEMENT_TYPE_INCOME else EXPENSE_CATEGORIES
         if categoria not in valid:
             raise ValueError("Categoría inválida para el tipo de movimiento.")
 
-    if "monto" in updates and float(updates["monto"]) <= 0:
+    if "monto" in payload and float(payload["monto"]) <= 0:
         raise ValueError("El monto debe ser mayor a cero.")
 
-    if "fecha" in updates:
-        updates["fecha"] = _normalize_fecha(str(updates["fecha"]))
+    if "fecha" in payload:
+        payload["fecha"] = _normalize_fecha(str(payload["fecha"]))
 
-    movement.update(updates)
-    movement["fecha_actualizacion"] = now_str()
-    db.update_row(SHEET_CONTABILIDAD, row_number, list(movement.values()))
-    return True
+    payload["fecha_actualizacion"] = now_iso()
+    return get_db().update_by_id(TABLE_CONTABILIDAD, movement_id, payload)
 
 
 def filter_movements(

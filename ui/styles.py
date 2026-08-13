@@ -101,9 +101,28 @@ section[data-testid="stMain"] > div {{
     padding-top: 0 !important;
 }}
 
+[data-testid="stAppViewContainer"],
+[data-testid="stMainBlockContainer"],
+section[data-testid="stMain"] {{
+    padding-top: 0 !important;
+}}
+
 section[data-testid="stMain"] .block-container {{
     max-width: 1280px;
     padding: 0 1.25rem 2rem !important;
+}}
+
+section[data-testid="stMain"] .block-container > div:first-child {{
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stElementContainer"]:has([data-testid="stEmpty"]) {{
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }}
 
 .main-content {{
@@ -357,32 +376,6 @@ section[data-testid="stMain"] .block-container {{
     padding: 0.15rem 0.35rem 0.5rem;
 }}
 
-.main-content .stTabs {{
-    margin-top: 0.25rem;
-}}
-
-.stTabs [data-baseweb="tab"] {{
-    border-radius: var(--r-pill) !important;
-    color: var(--olive-dark) !important;
-    font-weight: 500 !important;
-    padding: 0.45rem 1rem !important;
-}}
-
-/* Widgets globales */
-.stTabs [data-baseweb="tab-list"] {{
-    background: {BG_NAV_TRACK};
-    border-radius: var(--r-pill);
-    padding: 0.25rem;
-    border: 1px solid var(--border);
-}}
-
-.stTabs [aria-selected="true"] {{
-    background: var(--olive) !important;
-    color: var(--white) !important;
-    border-radius: var(--r-pill) !important;
-    font-weight: 600 !important;
-}}
-
 .stButton > button[kind="primary"] {{
     background: var(--olive) !important;
     border: none !important;
@@ -433,128 +426,318 @@ section[data-testid="stMain"] .block-container {{
 
     .welcome-title {{ font-size: 1.45rem; }}
 }}
+</style>
+"""
 
-/* ── Menú tabs (solo barra de navegación, no afecta dashboard) ── */
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) {{
+CALIXTA_NAV_CSS = f"""
+<style>
+/* Menú principal — minimalista tipo píldora */
+.st-key-calixta_nav {{
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    margin-top: 0;
+    padding: 0.35rem 1.5rem 0.45rem;
+    margin-bottom: 0.2rem;
+    box-sizing: border-box;
+}}
+
+.st-key-calixta_nav [data-testid="stElementContainer"]:has(.calixta-nav-root) {{
     display: none !important;
     height: 0 !important;
     min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
-    overflow: hidden !important;
 }}
 
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] {{
-    width: 100vw;
-    max-width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    padding: 0 1.1rem 0.65rem;
-    margin-bottom: 0.5rem;
-    box-sizing: border-box;
+.st-key-calixta_nav .calixta-nav-logo {{
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin: 0 auto 1.1rem auto !important;
+    padding: 0 !important;
 }}
 
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] [data-testid="stHorizontalBlock"] {{
-    background: linear-gradient(
-        180deg,
-        rgba(255, 255, 205, 0.92) 0%,
-        rgba(255, 252, 220, 0.82) 100%
-    );
-    border-radius: 14px;
-    padding: 0.42rem 0.55rem 0.42rem 0.7rem;
-    border: 1px solid rgba(198, 186, 128, 0.45);
-    box-shadow: 0 1px 3px rgba(61, 64, 53, 0.04);
-    gap: 0.12rem !important;
+.st-key-calixta_nav .calixta-nav-root {{
+    display: none !important;
+}}
+
+.st-key-calixta_nav [data-testid="stHorizontalBlock"]:has(.calixta-nav-logo) {{
+    justify-content: center !important;
+    margin-bottom: 0 !important;
+}}
+
+.st-key-calixta_nav .calixta-nav-logo img {{
+    width: 118px !important;
+    max-width: 118px !important;
+    height: auto !important;
+    max-height: none !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin: 0 auto !important;
+}}
+
+.st-key-calixta_nav [data-testid="stHorizontalBlock"]:has([class*="st-key-nav_btn_"]) {{
+    justify-content: center !important;
+    gap: 0.35rem !important;
+    flex-wrap: nowrap !important;
+}}
+
+.st-key-calixta_nav [data-testid="stHorizontalBlock"]:has(.st-key-nav_refresh) {{
     align-items: center !important;
 }}
 
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] [data-testid="stImage"] {{
-    margin: 0 !important;
-    padding: 0 0.15rem 0 0.1rem !important;
-}}
-
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] [data-testid="stImage"] img {{
-    max-height: 34px !important;
+.st-key-calixta_nav [class*="st-key-nav_btn_"] {{
+    flex: 0 1 auto !important;
     width: auto !important;
-    display: block;
+    min-width: unset !important;
 }}
 
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] .stButton {{
+.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton {{
     margin: 0 !important;
 }}
 
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] .stButton > button[kind="secondary"] {{
+.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button {{
+    border-radius: {RADIUS_PILL} !important;
+    clip-path: none !important;
+    white-space: nowrap !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.01em;
+    min-height: 2.15rem !important;
+    padding: 0.42rem 1.05rem !important;
+    width: auto !important;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}}
+
+.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[kind="secondary"] {{
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
+    color: {TEXT_MUTED} !important;
+}}
+
+.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[kind="secondary"]:hover {{
+    background: rgba(198, 186, 128, 0.18) !important;
     color: {OLIVE_DARK} !important;
-    font-size: 0.9rem !important;
-    font-weight: 500 !important;
-    padding: 0.58rem 0.65rem !important;
-    min-height: 2.55rem !important;
-    border-radius: 12px !important;
-    white-space: nowrap !important;
 }}
 
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] .stButton > button[kind="secondary"]:hover {{
-    background: rgba(255, 255, 255, 0.28) !important;
-    color: {OLIVE_DEEP} !important;
+.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[kind="primary"],
+.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[data-testid="stBaseButton-primary"] {{
+    background: transparent !important;
+    background-color: transparent !important;
     border: none !important;
-}}
-
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] .stButton > button[kind="primary"] {{
-    background: linear-gradient(
-        90deg,
-        rgba(247, 195, 198, 0.92) 0%,
-        rgba(255, 255, 205, 0.55) 52%,
-        rgba(255, 252, 220, 0.25) 100%
-    ) !important;
-    border: none !important;
-    border-left: 4px solid {OLIVE_DEEP} !important;
-    border-radius: 12px !important;
     box-shadow: none !important;
     color: {OLIVE_DEEP} !important;
-    font-size: 0.9rem !important;
-    font-weight: 600 !important;
-    padding: 0.58rem 0.65rem 0.58rem 0.75rem !important;
-    min-height: 2.55rem !important;
-    white-space: nowrap !important;
+    font-weight: 700 !important;
+    text-decoration: underline !important;
+    text-underline-offset: 0.28rem !important;
+    text-decoration-color: {OLIVE} !important;
+    text-decoration-thickness: 2px !important;
 }}
 
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] .stButton > button[kind="primary"]:hover {{
-    background: linear-gradient(
-        90deg,
-        rgba(247, 195, 198, 1) 0%,
-        rgba(255, 255, 205, 0.65) 100%
-    ) !important;
+.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[kind="primary"]:hover,
+.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[data-testid="stBaseButton-primary"]:hover {{
+    background: transparent !important;
+    background-color: transparent !important;
     color: {OLIVE_DEEP} !important;
-    border-left: 4px solid {OLIVE_DEEP} !important;
+    border: none !important;
+    text-decoration-color: {OLIVE_DARK} !important;
 }}
 
-[data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] > div > [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child .stButton > button {{
+.st-key-calixta_nav .st-key-nav_refresh {{
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 2rem !important;
+}}
+
+.st-key-calixta_nav .st-key-nav_refresh .stButton {{
+    margin: 0 !important;
+}}
+
+.st-key-calixta_nav .st-key-nav_refresh .stButton > button {{
     width: 2rem !important;
     min-width: 2rem !important;
     height: 2rem !important;
     min-height: 2rem !important;
     padding: 0 !important;
-    border-radius: 9px !important;
-    background: rgba(255, 255, 255, 0.35) !important;
-    border: 1px solid rgba(130, 143, 89, 0.14) !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    border: 1px solid rgba(130, 143, 89, 0.16) !important;
     color: {OLIVE_DARK} !important;
     box-shadow: none !important;
-    font-size: 0.95rem !important;
+    font-size: 0.92rem !important;
     font-weight: 400 !important;
 }}
 
-@media (max-width: 900px) {{
-    [data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] {{
-        padding: 0 0.55rem 0.5rem;
+.st-key-calixta_nav .st-key-nav_refresh .stButton > button:hover {{
+    background: rgba(247, 195, 198, 0.22) !important;
+    border-color: rgba(130, 143, 89, 0.28) !important;
+    color: {OLIVE_DEEP} !important;
+}}
+
+@media (max-width: 1100px) {{
+    .st-key-calixta_nav {{
+        padding: 0.25rem 0.85rem 0.5rem;
     }}
 
-    [data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .calixta-nav-root) + [data-testid="stElementContainer"] .stButton > button {{
-        font-size: 0.74rem !important;
-        padding: 0.45rem 0.25rem !important;
-        min-height: 2.1rem !important;
+    .st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button {{
+        font-size: 0.76rem !important;
+        padding: 0.38rem 0.72rem !important;
+        min-height: 1.95rem !important;
+    }}
+}}
+
+@media (max-width: 768px) {{
+    .st-key-calixta_nav {{
+        padding: 0.2rem 0.55rem 0.45rem;
+    }}
+
+    .st-key-calixta_nav [data-testid="stHorizontalBlock"]:has([class*="st-key-nav_btn_"]) {{
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        justify-content: flex-start !important;
+        padding-bottom: 0.15rem;
+    }}
+
+    .st-key-calixta_nav [class*="st-key-nav_btn_"] {{
+        min-width: 4.8rem;
+    }}
+
+    .st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button {{
+        font-size: 0.7rem !important;
+        padding: 0.34rem 0.55rem !important;
+    }}
+}}
+</style>
+"""
+
+# CSS de pestañas internas — bloque aparte para que Streamlit no sirva versión en caché.
+CALIXTA_MODULE_TABS_CSS = f"""
+<style id="calixta-module-tabs-v3">
+section[data-testid="stMain"] [data-testid="stTabs"],
+section[data-testid="stMain"] .stTabs {{
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 0.1rem !important;
+    margin-bottom: 0.25rem !important;
+}}
+
+/* Fila de pestañas (Streamlit 1.60: react-aria TabList) */
+section[data-testid="stMain"] [data-testid="stTabs"] > div > div:first-child,
+section[data-testid="stMain"] [data-testid="stTabs"] [class*="e1ac7blb3"] {{
+    display: flex !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    position: relative !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stTabs"] > div > div:first-child::-webkit-scrollbar {{
+    display: none !important;
+}}
+
+/* Línea inferior continua */
+section[data-testid="stMain"] [data-testid="stTabs"] > div > div:first-child::after,
+section[data-testid="stMain"] [data-testid="stTabs"] [class*="e1ac7blb3"]::after {{
+    display: block !important;
+    content: "" !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 1px !important;
+    background-color: rgba(130, 143, 89, 0.24) !important;
+    border-radius: 0 !important;
+    z-index: 0 !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stTabs"] [data-testid="stTabPanel"] {{
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-top: 0.85rem !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stTabs"] [data-testid="stTab"],
+section[data-testid="stMain"] [data-testid="stTabs"] [class*="e1ac7blb4"] {{
+    position: relative !important;
+    border-radius: 0 !important;
+    color: {OLIVE_DARK} !important;
+    font-weight: 500 !important;
+    font-size: 0.86rem !important;
+    padding: 0.62rem 1.15rem !important;
+    min-height: unset !important;
+    height: auto !important;
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    border-right: 1px solid rgba(130, 143, 89, 0.2) !important;
+    box-shadow: none !important;
+    white-space: nowrap !important;
+    transition: color 0.16s ease !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stTabs"] [data-testid="stTab"]::before,
+section[data-testid="stMain"] [data-testid="stTabs"] [class*="e1ac7blb4"]::before {{
+    content: none !important;
+    display: none !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stTabs"] [data-testid="stTab"]:last-child {{
+    border-right: none !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stTabs"] [data-testid="stTab"] .react-aria-SelectionIndicator {{
+    display: block !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 3px !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    z-index: 2 !important;
+    transition: background-color 0.16s ease !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stTabs"] [data-testid="stTab"]:hover:not([data-selected]) {{
+    color: {OLIVE} !important;
+    background: transparent !important;
+    background-image: none !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stTabs"] [data-testid="stTab"][data-selected],
+section[data-testid="stMain"] [data-testid="stTabs"] [class*="e1ac7blb4"][data-selected] {{
+    color: {OLIVE} !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+    background-image: none !important;
+    border-color: rgba(130, 143, 89, 0.2) !important;
+    box-shadow: none !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stTabs"] [data-testid="stTab"][data-selected] .react-aria-SelectionIndicator {{
+    background-color: {OLIVE} !important;
+}}
+
+@media (max-width: 768px) {{
+    section[data-testid="stMain"] [data-testid="stTabs"] > div > div:first-child {{
+        flex-wrap: nowrap !important;
+    }}
+
+    section[data-testid="stMain"] [data-testid="stTabs"] [data-testid="stTab"] {{
+        font-size: 0.78rem !important;
+        padding: 0.52rem 0.85rem !important;
     }}
 }}
 </style>
