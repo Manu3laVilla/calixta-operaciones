@@ -487,6 +487,10 @@ def _tab_alertas_email() -> None:
 
         st.divider()
         st.markdown("**Envío programado (prueba)**")
+        st.caption(
+            "Solo envía si la hora actual está dentro de ±25 min de un horario configurado "
+            "y ese slot no se procesó ya hoy en esa ventana."
+        )
         if st.button("Ejecutar envío programado ahora", key="admin_alert_run_scheduled"):
             try:
                 result = run_scheduled_alert_job()

@@ -168,11 +168,11 @@ En el repositorio → **Settings → Secrets and variables → Actions**, crea:
 
 ### Paso D: Workflow
 
-El archivo `.github/workflows/scheduled-stock-alerts.yml` corre **cada 15 minutos** (UTC). El script solo envía si:
+El archivo `.github/workflows/scheduled-stock-alerts.yml` corre **cada 5 minutos** (UTC). El script solo envía si:
 
 - El envío automático está activo en Administración
-- La hora actual cae en la ventana ±20 min de un horario configurado
-- Ese slot no se envió ya hoy
+- La hora actual cae en la ventana ±25 min de un horario configurado
+- Ese slot no se procesó ya hoy en esa misma ventana horaria
 
 Prueba manual desde GitHub: **Actions → Scheduled stock alerts → Run workflow**.
 

@@ -2,8 +2,8 @@ name: Scheduled stock alerts
 
 on:
   schedule:
-    # Cada 15 min (UTC). El script usa ventana ±20 min en America/Bogota.
-    - cron: "*/15 * * * *"
+    # Cada 5 min (UTC). El script usa ventana ±25 min en America/Bogota.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:

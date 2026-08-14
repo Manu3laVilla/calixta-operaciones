@@ -160,21 +160,47 @@ def list_alert_send_logs(limit: int = 20) -> pd.DataFrame:
     return df.head(limit)
 
 
-def was_slot_sent_today(slot: int, *, on_date: date | None = None) -> bool:
+def was_slot_sent_today(
+    slot: int,
+    *,
+    on_date: date | None = None,
+    window_minutes: int = 25,
+) -> bool:
+    """True si ese slot ya se procesó hoy cerca de su horario programado."""
     config = get_alert_email_config()
-    tz = ZoneInfo(str(config.get("zona_horaria") or "America/Bogota"))
+    tz_name = str(config.get("zona_horaria") or "America/Bogota")
+    tz = ZoneInfo(tz_name)
     target_date = on_date or datetime.now(tz).date()
     target_iso = target_date.isoformat()
+
+    scheduled_time: time | None = None
+    for slot_number, scheduled in configured_schedule_times(config):
+        if slot_number == int(slot):
+            scheduled_time = scheduled
+            break
+    if scheduled_time is None:
+        return False
+
+    scheduled_dt = datetime.combine(target_date, scheduled_time, tzinfo=tz)
     df = get_db().get_dataframe(TABLE_ALERTAS_ENVIOS_LOG)
     if df.empty:
         return False
+
     for _, row in df.iterrows():
         if int(row.get("slot", 0)) != int(slot):
             continue
         if not _activo_to_bool(row.get("exito", False)):
             continue
         row_date = str(row.get("fecha", ""))[:10]
-        if row_date == target_iso:
+        if row_date != target_iso:
+            continue
+
+        sent_at = pd.to_datetime(row.get("enviado_en"), errors="coerce", utc=True)
+        if pd.isna(sent_at):
+            continue
+        sent_local = sent_at.tz_convert(tz)
+        delta_minutes = abs((sent_local - scheduled_dt).total_seconds()) / 60
+        if delta_minutes <= window_minutes:
             return True
     return False
 
@@ -211,7 +237,7 @@ def configured_schedule_times(config: dict[str, Any] | None = None) -> list[tupl
     return slots
 
 
-def resolve_due_slots(*, window_minutes: int = 20) -> list[tuple[int, date, datetime]]:
+def resolve_due_slots(*, window_minutes: int = 25) -> list[tuple[int, date, datetime]]:
     config = get_alert_email_config()
     if not _activo_to_bool(config.get("activo", False)):
         return []
@@ -225,12 +251,16 @@ def resolve_due_slots(*, window_minutes: int = 20) -> list[tuple[int, date, date
     for slot, scheduled in configured_schedule_times(config):
         scheduled_dt = datetime.combine(today, scheduled, tzinfo=tz)
         delta_minutes = abs((now - scheduled_dt).total_seconds()) / 60
-        if delta_minutes <= window_minutes and not was_slot_sent_today(slot, on_date=today):
+        if delta_minutes <= window_minutes and not was_slot_sent_today(
+            slot,
+            on_date=today,
+            window_minutes=window_minutes,
+        ):
             due.append((slot, today, now))
     return due
 
 
-def resolve_due_slot(*, window_minutes: int = 20) -> tuple[int, date, datetime] | None:
+def resolve_due_slot(*, window_minutes: int = 25) -> tuple[int, date, datetime] | None:
     slots = resolve_due_slots(window_minutes=window_minutes)
     return slots[0] if slots else None
 
