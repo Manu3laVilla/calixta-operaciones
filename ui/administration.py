@@ -35,6 +35,21 @@ def _refresh_and_rerun() -> None:
     st.rerun()
 
 
+def _show_flash(flash_key: str) -> None:
+    if flash := st.session_state.pop(flash_key, None):
+        st.success(flash)
+
+
+def _apply_pending_reset(reset_flag_key: str, **fields: object) -> None:
+    if st.session_state.pop(reset_flag_key, False):
+        for key, value in fields.items():
+            st.session_state[key] = value
+
+
+def _schedule_reset(reset_flag_key: str) -> None:
+    st.session_state[reset_flag_key] = True
+
+
 def _bool_select(label: str, value: bool, *, key: str) -> bool:
     options = ["Si", "No"]
     index = 0 if value else 1
@@ -69,10 +84,17 @@ def _tab_tipos_producto() -> None:
             calixta_table(_catalog_display(types_df), key="admin_product_types_list")
 
     with tab_new:
-        with st.form("admin_new_product_type"):
+        flash_key = "admin_new_product_type_flash"
+        reset_key = "admin_new_product_type_reset"
+        nombre_key = "admin_new_product_type_nombre"
+        categoria_key = "admin_new_product_type_categoria"
+        _apply_pending_reset(reset_key, **{nombre_key: "", categoria_key: CATEGORIES[0]})
+        _show_flash(flash_key)
+
+        with st.form("admin_new_product_type", enter_to_submit=False):
             c1, c2 = st.columns(2)
-            nombre = c1.text_input("Nombre *")
-            categoria = c2.selectbox("Categoría *", CATEGORIES)
+            nombre = c1.text_input("Nombre *", key=nombre_key)
+            categoria = c2.selectbox("Categoría *", CATEGORIES, key=categoria_key)
 
             if st.form_submit_button("Guardar tipo", type="primary"):
                 if not nombre.strip():
@@ -80,7 +102,10 @@ def _tab_tipos_producto() -> None:
                 else:
                     try:
                         created = create_product_type(nombre, categoria)
-                        st.success(f"Tipo creado: {created['nombre']} ({created['id']})")
+                        st.session_state[flash_key] = (
+                            f"Tipo creado: {created['nombre']} ({created['id']})"
+                        )
+                        _schedule_reset(reset_key)
                         _refresh_and_rerun()
                     except Exception as exc:
                         st.error(str(exc))
@@ -171,8 +196,14 @@ def _tab_simple_types(
             calixta_table(_catalog_display(types_df), key=list_key)
 
     with tab_new:
-        with st.form(new_form_key):
-            nombre = st.text_input("Nombre *")
+        flash_key = f"{new_form_key}_flash"
+        reset_key = f"{new_form_key}_reset"
+        nombre_key = f"{new_form_key}_nombre"
+        _apply_pending_reset(reset_key, **{nombre_key: ""})
+        _show_flash(flash_key)
+
+        with st.form(new_form_key, enter_to_submit=False):
+            nombre = st.text_input("Nombre *", key=nombre_key)
 
             if st.form_submit_button("Guardar tipo", type="primary"):
                 if not nombre.strip():
@@ -180,7 +211,10 @@ def _tab_simple_types(
                 else:
                     try:
                         created = create_fn(nombre)
-                        st.success(f"Tipo creado: {created['nombre']} ({created['id']})")
+                        st.session_state[flash_key] = (
+                            f"Tipo creado: {created['nombre']} ({created['id']})"
+                        )
+                        _schedule_reset(reset_key)
                         _refresh_and_rerun()
                     except Exception as exc:
                         st.error(str(exc))
@@ -260,14 +294,33 @@ def _tab_estados_pedido() -> None:
             calixta_table(display, key="admin_order_states_list")
 
     with tab_new:
-        with st.form("admin_new_order_state"):
-            nombre = st.text_input("Nombre *")
+        flash_key = "admin_new_order_state_flash"
+        reset_key = "admin_new_order_state_reset"
+        nombre_key = "admin_new_order_state_nombre"
+        genera_key = "admin_new_order_state_genera"
+        revierte_key = "admin_new_order_state_revierte"
+        inicial_key = "admin_new_order_state_inicial"
+        bloquea_key = "admin_new_order_state_bloquea"
+        _apply_pending_reset(
+            reset_key,
+            **{
+                nombre_key: "",
+                genera_key: False,
+                revierte_key: False,
+                inicial_key: False,
+                bloquea_key: False,
+            },
+        )
+        _show_flash(flash_key)
+
+        with st.form("admin_new_order_state", enter_to_submit=False):
+            nombre = st.text_input("Nombre *", key=nombre_key)
 
             c1, c2, c3, c4 = st.columns(4)
-            genera_venta = c1.checkbox("Genera venta")
-            revierte_venta = c2.checkbox("Revierte venta")
-            es_inicial = c3.checkbox("Estado inicial")
-            bloquea_edicion = c4.checkbox("Bloquea edición")
+            genera_venta = c1.checkbox("Genera venta", key=genera_key)
+            revierte_venta = c2.checkbox("Revierte venta", key=revierte_key)
+            es_inicial = c3.checkbox("Estado inicial", key=inicial_key)
+            bloquea_edicion = c4.checkbox("Bloquea edición", key=bloquea_key)
 
             if st.form_submit_button("Guardar estado", type="primary"):
                 if not nombre.strip():
@@ -281,7 +334,10 @@ def _tab_estados_pedido() -> None:
                             es_inicial=es_inicial,
                             bloquea_edicion=bloquea_edicion,
                         )
-                        st.success(f"Estado creado: {created['nombre']} ({created['id']})")
+                        st.session_state[flash_key] = (
+                            f"Estado creado: {created['nombre']} ({created['id']})"
+                        )
+                        _schedule_reset(reset_key)
                         _refresh_and_rerun()
                     except Exception as exc:
                         st.error(str(exc))

@@ -96,7 +96,7 @@ _MOBILE_HEADER_LAYOUT_CSS = f"""
 """
 
 CALIXTA_CSS = f"""
-<style id="calixta-main-v28">
+<style id="calixta-main-v29">
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {{
@@ -314,7 +314,7 @@ section[data-testid="stMain"] [data-testid="stElementContainer"]:has([data-testi
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--muted);
-    margin: 0 0 0.85rem 0.35rem;
+    margin: 0 0 1.75rem 0.35rem;
     padding: 0.65rem 0.85rem;
     border-radius: var(--r-lg);
     background: linear-gradient(135deg, rgba(255,255,205,0.35) 0%, rgba(247,195,198,0.22) 55%, rgba(240,199,193,0.18) 100%);
