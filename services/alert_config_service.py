@@ -214,7 +214,9 @@ def log_alert_send(
     exito: bool,
     mensaje: str = "",
 ) -> None:
-    payload = {
+    record = {
+        "slot": int(slot),
+        "fecha": on_date.isoformat(),
         "enviado_en": now_iso(),
         "destinatarios": ", ".join(destinatarios),
         "productos_count": int(productos_count),
@@ -222,24 +224,10 @@ def log_alert_send(
         "mensaje": mensaje[:500],
     }
     db = get_db()
-    updated = (
-        db.client.table(TABLE_ALERTAS_ENVIOS_LOG)
-        .update(payload)
-        .eq("fecha", on_date.isoformat())
-        .eq("slot", int(slot))
-        .execute()
-    )
-    if updated.data:
-        return
-
-    db.insert(
-        TABLE_ALERTAS_ENVIOS_LOG,
-        {
-            "slot": int(slot),
-            "fecha": on_date.isoformat(),
-            **payload,
-        },
-    )
+    db.client.table(TABLE_ALERTAS_ENVIOS_LOG).upsert(
+        record,
+        on_conflict="fecha,slot",
+    ).execute()
 
 
 def configured_schedule_times(config: dict[str, Any] | None = None) -> list[tuple[int, time]]:

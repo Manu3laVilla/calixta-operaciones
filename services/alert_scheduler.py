@@ -78,14 +78,25 @@ def _run_slot(
         return {"ok": False, "skipped": False, "slot": slot, "reason": message}
 
     if log:
-        log_alert_send(
-            slot=slot,
-            on_date=on_date,
-            destinatarios=recipients,
-            productos_count=len(alerts),
-            exito=True,
-            mensaje="Enviado correctamente.",
-        )
+        try:
+            log_alert_send(
+                slot=slot,
+                on_date=on_date,
+                destinatarios=recipients,
+                productos_count=len(alerts),
+                exito=True,
+                mensaje="Enviado correctamente.",
+            )
+        except Exception as exc:
+            return {
+                "ok": True,
+                "skipped": False,
+                "slot": slot,
+                "recipients": recipients,
+                "products": len(alerts),
+                "sent_at": now.isoformat(),
+                "log_error": str(exc),
+            }
 
     return {
         "ok": True,

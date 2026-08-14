@@ -10,6 +10,7 @@ from services.alert_config_service import (
     create_alert_recipient,
     delete_alert_recipient,
     format_config_summary,
+    list_alert_send_logs,
     save_alert_email_config,
     time_input_defaults,
     update_alert_recipient,
@@ -601,7 +602,9 @@ def _tab_alertas_email() -> None:
                             st.error(str(exc))
 
     with tab_log:
-        logs = load_alert_send_logs()
+        if st.button("Actualizar historial", key="admin_alert_refresh_logs"):
+            load_alert_send_logs.clear()
+        logs = list_alert_send_logs()
         if logs.empty:
             st.info("Aún no hay envíos registrados.")
         else:
