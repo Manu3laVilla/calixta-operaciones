@@ -214,16 +214,30 @@ def log_alert_send(
     exito: bool,
     mensaje: str = "",
 ) -> None:
-    get_db().insert(
+    payload = {
+        "enviado_en": now_iso(),
+        "destinatarios": ", ".join(destinatarios),
+        "productos_count": int(productos_count),
+        "exito": bool(exito),
+        "mensaje": mensaje[:500],
+    }
+    db = get_db()
+    updated = (
+        db.client.table(TABLE_ALERTAS_ENVIOS_LOG)
+        .update(payload)
+        .eq("fecha", on_date.isoformat())
+        .eq("slot", int(slot))
+        .execute()
+    )
+    if updated.data:
+        return
+
+    db.insert(
         TABLE_ALERTAS_ENVIOS_LOG,
         {
             "slot": int(slot),
             "fecha": on_date.isoformat(),
-            "enviado_en": now_iso(),
-            "destinatarios": ", ".join(destinatarios),
-            "productos_count": int(productos_count),
-            "exito": bool(exito),
-            "mensaje": mensaje[:500],
+            **payload,
         },
     )
 
