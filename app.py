@@ -4,14 +4,15 @@ import utils.ssl_fix  # noqa: F401 — parche SSL para Windows
 
 from datetime import date, datetime
 
+import smtplib
 import pandas as pd
 import streamlit as st
 
-from app_config import ALERT_EMAIL_TO, CATEGORIES, SIZES
+from app_config import CATEGORIES, SIZES
 from services.catalog_service import product_type_options
 from services.alert_service import notify_low_stock_by_email
 from services.customer_service import create_customer, update_customer
-from services.email_service import is_email_configured
+from services.email_service import alert_recipient, is_email_configured
 from services.order_service import (
     create_order,
     delete_order,
@@ -469,7 +470,7 @@ def page_dashboard() -> None:
                 ],
                 key="dash_alerts_table",
             )
-            _render_email_alert_button(alerts)
+            _render_email_alert_button(alerts, key="send_email_alert_dashboard")
 
 
 def page_products() -> None:
@@ -984,23 +985,38 @@ def page_sales() -> None:
                 calixta_table(display, key="sales_list")
 
 
-def _render_email_alert_button(alerts: pd.DataFrame) -> None:
+def _render_email_alert_button(alerts: pd.DataFrame, *, key: str = "send_email_alert") -> None:
     st.divider()
     st.subheader("Notificación por correo")
 
+    if alerts.empty:
+        st.info("No hay productos en alerta para enviar por correo.")
+        return
+
     if not is_email_configured():
-        st.info(
-            "Para enviar alertas por correo, configura `SMTP_USER` y `SMTP_PASSWORD` "
-            "en tu archivo `.env`. Consulta `.env.example` para más detalles."
+        st.warning(
+            "Correo no configurado. En `.env`, reemplaza `SMTP_PASSWORD` por la "
+            "contraseña de aplicación real de Gmail (16 caracteres). "
+            "No uses el texto de ejemplo `tu_contraseña_de_aplicacion`."
         )
         return
 
-    st.caption(f"Los correos se enviarán a: **{ALERT_EMAIL_TO}**")
+    st.caption(f"Los correos se enviarán a: **{alert_recipient()}**")
 
-    if st.button("Enviar alerta por correo", type="primary", key="send_email_alert"):
+    if st.button("Enviar alerta por correo", type="primary", key=key):
         try:
             count = notify_low_stock_by_email()
-            st.success(f"Correo enviado a {ALERT_EMAIL_TO} con {count} producto(s).")
+            recipient = alert_recipient()
+            st.success(
+                f"Correo enviado a {recipient} con {count} producto(s). "
+                "Si no lo ves en la bandeja de entrada, revisa **Spam** o **Promociones**."
+            )
+        except smtplib.SMTPAuthenticationError:
+            st.error(
+                "Gmail rechazó el usuario o la contraseña. Revisa `SMTP_USER` y "
+                "`SMTP_PASSWORD` en `.env`: usa una contraseña de aplicación de 16 "
+                "caracteres (sin espacios ni caracteres especiales como ñ)."
+            )
         except Exception as exc:
             st.error(f"No se pudo enviar el correo: {exc}")
 
@@ -1009,10 +1025,24 @@ def page_alerts() -> None:
     page_header("Alertas de stock", "Productos que requieren reposición")
 
     with page_section():
+        products = load_products(active_only=True)
         alerts = load_low_stock_alerts()
         with panel_card("Inventario crítico", accent="pink"):
+            st.caption(
+                f"Monitoreando **{len(products)}** producto(s) activos. "
+                "Un producto entra en alerta cuando **stock ≤ stock mínimo**."
+            )
             if alerts.empty:
                 st.success("Todo en orden. No hay productos con stock bajo.")
+                if not products.empty:
+                    preview = products.copy()
+                    preview["margen"] = preview["stock"] - preview["stock_minimo"]
+                    near = preview.sort_values("margen").head(5)
+                    st.markdown("**Más cerca del mínimo**")
+                    near_display = near[
+                        ["referencia", "nombre", "stock", "stock_minimo", "margen"]
+                    ].copy()
+                    calixta_table(near_display, key="alerts_near_min", paginate=False)
             else:
                 st.warning(f"{len(alerts)} producto(s) por debajo del stock mínimo.")
                 display = alerts.copy()
@@ -1024,7 +1054,7 @@ def page_alerts() -> None:
                     ],
                     key="alerts_list",
                 )
-                _render_email_alert_button(alerts)
+                _render_email_alert_button(alerts, key="send_email_alert_page")
 
 
 def main() -> None:

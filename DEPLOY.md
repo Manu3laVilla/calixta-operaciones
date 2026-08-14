@@ -131,3 +131,54 @@ https://calixta-operaciones.streamlit.app
 ## Actualizar la app
 
 Cada vez que hagas `git push` a `main`, Streamlit Cloud redespliega automáticamente.
+
+---
+
+## Alertas automáticas por correo (GitHub Actions)
+
+Los envíos programados (1–3 veces al día) los ejecuta un workflow de GitHub Actions, no Streamlit Cloud.
+
+### Paso A: Migración en Supabase
+
+Ejecuta en el SQL Editor de Supabase el archivo:
+
+`supabase/migrations/20260814_alertas_email_config.sql`
+
+### Paso B: Configurar en la app
+
+1. **Administración → Alertas por correo**
+2. Agrega destinatarios activos
+3. Activa **Envío automático** y define horarios (zona `America/Bogota`)
+
+SMTP sigue en `.env` local y en Streamlit Secrets (igual que el envío manual).
+
+### Paso C: Secrets en GitHub
+
+En el repositorio → **Settings → Secrets and variables → Actions**, crea:
+
+| Secret | Uso |
+|--------|-----|
+| `SUPABASE_URL` | URL del proyecto Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role (misma que local) |
+| `SMTP_HOST` | p. ej. `smtp.gmail.com` |
+| `SMTP_PORT` | p. ej. `587` |
+| `SMTP_USER` | Cuenta Gmail |
+| `SMTP_PASSWORD` | Contraseña de aplicación |
+| `ALERT_EMAIL_TO` | Respaldo si no hay destinatarios en BD |
+
+### Paso D: Workflow
+
+El archivo `.github/workflows/scheduled-stock-alerts.yml` corre **cada 15 minutos** (UTC). El script solo envía si:
+
+- El envío automático está activo en Administración
+- La hora actual cae en la ventana ±20 min de un horario configurado
+- Ese slot no se envió ya hoy
+
+Prueba manual desde GitHub: **Actions → Scheduled stock alerts → Run workflow**.
+
+Prueba local:
+
+```bash
+python scripts/send_scheduled_alerts.py --json
+python scripts/send_scheduled_alerts.py --force --json
+```

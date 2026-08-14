@@ -6,6 +6,16 @@ import pandas as pd
 import streamlit as st
 
 from app_config import CATEGORIES
+from services.alert_config_service import (
+    create_alert_recipient,
+    delete_alert_recipient,
+    format_config_summary,
+    save_alert_email_config,
+    time_input_defaults,
+    update_alert_recipient,
+)
+from services.alert_scheduler import run_scheduled_alert_job
+from services.alert_service import get_low_stock_alerts, notify_low_stock_by_email
 from services.catalog_service import (
     create_expense_type,
     create_income_type,
@@ -20,8 +30,12 @@ from services.catalog_service import (
     update_order_state,
     update_product_type,
 )
+from services.email_service import alert_recipient, is_email_configured
 from ui.cached_data import (
     clear_data_cache,
+    load_alert_email_config,
+    load_alert_recipients,
+    load_alert_send_logs,
     load_expense_types,
     load_income_types,
     load_order_states,
@@ -413,12 +427,198 @@ def _tab_estados_pedido() -> None:
                 st.error(str(exc))
 
 
+def _tab_alertas_email() -> None:
+    st.markdown(
+        "Configura destinatarios, horarios y envío automático de alertas de stock. "
+        "El servidor SMTP (Gmail) sigue configurándose en `.env` / Streamlit Secrets."
+    )
+    st.info(
+        "La app **guarda** la programación, pero **no envía sola** a la hora indicada. "
+        "Los envíos automáticos los ejecuta **GitHub Actions** (en producción) o el script "
+        "`scripts/send_scheduled_alerts.py` en una tarea programada de Windows. "
+        "Usa el botón de abajo para probar el envío programado sin esperar."
+    )
+
+    config = load_alert_email_config()
+    st.caption(format_config_summary(config))
+
+    tab_config, tab_dest, tab_log = st.tabs(["Programación", "Destinatarios", "Historial"])
+
+    with tab_config:
+        h1, h2, h3 = time_input_defaults(config)
+        with st.form("admin_alert_email_config", enter_to_submit=False):
+            activo = _bool_select("Envío automático activo", _as_bool(config.get("activo")), key="admin_alert_auto")
+            envios = st.selectbox(
+                "Envíos por día",
+                [1, 2, 3],
+                index=max(0, int(config.get("envios_por_dia", 1)) - 1),
+                key="admin_alert_envios",
+            )
+            c1, c2, c3 = st.columns(3)
+            hora_1 = c1.text_input("Horario 1 (HH:MM)", value=h1, key="admin_alert_h1")
+            hora_2 = c2.text_input("Horario 2 (HH:MM)", value=h2, key="admin_alert_h2")
+            hora_3 = c3.text_input("Horario 3 (HH:MM)", value=h3, key="admin_alert_h3")
+            solo_con_alertas = _bool_select(
+                "Enviar solo si hay productos en alerta",
+                _as_bool(config.get("solo_si_hay_alertas", True)),
+                key="admin_alert_solo",
+            )
+            zona = st.text_input(
+                "Zona horaria",
+                value=str(config.get("zona_horaria") or "America/Bogota"),
+                key="admin_alert_tz",
+            )
+
+            if st.form_submit_button("Guardar programación", type="primary"):
+                try:
+                    save_alert_email_config(
+                        activo=activo,
+                        envios_por_dia=int(envios),
+                        horario_1=hora_1,
+                        horario_2=hora_2,
+                        horario_3=hora_3,
+                        solo_si_hay_alertas=solo_con_alertas,
+                        zona_horaria=zona,
+                    )
+                    st.success("Programación de alertas guardada.")
+                    _refresh_and_rerun()
+                except Exception as exc:
+                    st.error(str(exc))
+
+        st.divider()
+        st.markdown("**Envío programado (prueba)**")
+        if st.button("Ejecutar envío programado ahora", key="admin_alert_run_scheduled"):
+            try:
+                result = run_scheduled_alert_job()
+                if result.get("skipped"):
+                    st.warning(result.get("reason", "No correspondía enviar ahora."))
+                elif result.get("ok"):
+                    slots = result.get("slots") or [result.get("slot")]
+                    st.success(
+                        f"Enviado en slot(s) {slots} a {', '.join(result.get('recipients', []))} "
+                        f"({result.get('products', 0)} producto(s))."
+                    )
+                    _refresh_and_rerun()
+                else:
+                    st.error(result.get("reason", "No se pudo enviar."))
+            except Exception as exc:
+                st.error(str(exc))
+
+        st.divider()
+        st.markdown("**Prueba manual**")
+        if not is_email_configured():
+            st.warning("SMTP no configurado en `.env` / Secrets.")
+        else:
+            st.caption(f"Destinatarios actuales: **{alert_recipient() or 'ninguno'}**")
+            alerts = get_low_stock_alerts()
+            st.caption(f"Productos en alerta ahora: **{len(alerts)}**")
+            if st.button("Enviar alerta ahora (manual)", key="admin_alert_send_now"):
+                try:
+                    count = notify_low_stock_by_email()
+                    st.success(
+                        f"Correo enviado a {alert_recipient()} con {count} producto(s). "
+                        "Revisa Spam si no lo ves."
+                    )
+                except Exception as exc:
+                    st.error(str(exc))
+
+    with tab_dest:
+        tab_list, tab_new, tab_edit = st.tabs(["Listado", "Nuevo correo", "Editar / eliminar"])
+
+        with tab_list:
+            recipients = load_alert_recipients()
+            if recipients.empty:
+                st.info("No hay destinatarios. Agrega al menos uno para el envío automático.")
+            else:
+                display = recipients.copy()
+                if "activo" in display.columns:
+                    display["activo"] = display["activo"].map(lambda v: "Si" if _as_bool(v) else "No")
+                calixta_table(display.drop(columns=["fecha_registro"], errors="ignore"), key="admin_alert_recipients_list")
+
+        with tab_new:
+            with st.form("admin_new_alert_recipient", enter_to_submit=False):
+                email = st.text_input("Correo *")
+                nombre = st.text_input("Nombre (opcional)")
+                if st.form_submit_button("Guardar destinatario", type="primary"):
+                    if not email.strip():
+                        st.error("El correo es obligatorio.")
+                    else:
+                        try:
+                            created = create_alert_recipient(email, nombre)
+                            st.success(f"Destinatario creado: {created['email']}")
+                            _refresh_and_rerun()
+                        except Exception as exc:
+                            st.error(str(exc))
+
+        with tab_edit:
+            recipients = load_alert_recipients()
+            if recipients.empty:
+                st.info("No hay destinatarios registrados.")
+            else:
+                options = {
+                    f"{row['email']} ({row['id']})": row["id"]
+                    for _, row in recipients.iterrows()
+                }
+                recipient_id = search_select(
+                    "Buscar destinatario",
+                    options,
+                    key="admin_edit_alert_recipient_sel",
+                    placeholder="Buscar por correo…",
+                )
+                if recipient_id is not None:
+                    current = recipients[recipients["id"] == recipient_id].iloc[0]
+                    with st.form("admin_edit_alert_recipient", enter_to_submit=False):
+                        email = st.text_input("Correo *", value=str(current.get("email", "")))
+                        nombre = st.text_input("Nombre", value=str(current.get("nombre", "")))
+                        activo = _bool_select("Activo", _as_bool(current.get("activo")), key="admin_edit_alert_recipient_activo")
+
+                        c1, c2 = st.columns(2)
+                        save = c1.form_submit_button("Actualizar", type="primary")
+                        delete = c2.form_submit_button("Eliminar", type="secondary")
+
+                    if save:
+                        try:
+                            update_alert_recipient(
+                                recipient_id,
+                                {"email": email, "nombre": nombre, "activo": activo},
+                            )
+                            st.success("Destinatario actualizado.")
+                            clear_search_select("admin_edit_alert_recipient_sel")
+                            _refresh_and_rerun()
+                        except Exception as exc:
+                            st.error(str(exc))
+                    if delete:
+                        try:
+                            delete_alert_recipient(recipient_id)
+                            st.success("Destinatario eliminado.")
+                            clear_search_select("admin_edit_alert_recipient_sel")
+                            _refresh_and_rerun()
+                        except Exception as exc:
+                            st.error(str(exc))
+
+    with tab_log:
+        logs = load_alert_send_logs()
+        if logs.empty:
+            st.info("Aún no hay envíos registrados.")
+        else:
+            display = logs.copy()
+            if "enviado_en" in display.columns:
+                display["enviado_en"] = pd.to_datetime(display["enviado_en"]).dt.strftime("%Y-%m-%d %H:%M")
+            if "exito" in display.columns:
+                display["exito"] = display["exito"].map(lambda v: "Si" if _as_bool(v) else "No")
+            calixta_table(
+                display[["fecha", "slot", "enviado_en", "destinatarios", "productos_count", "exito", "mensaje"]],
+                key="admin_alert_send_logs",
+                paginate=False,
+            )
+
+
 def page_administracion() -> None:
     page_header("Administración", "Catálogos y configuración del flujo operativo")
 
     with page_section():
-        tab_productos, tab_ingresos, tab_gastos, tab_estados = st.tabs(
-            ["Tipos de producto", "Tipos de ingreso", "Tipos de gasto", "Estados de pedido"]
+        tab_productos, tab_ingresos, tab_gastos, tab_estados, tab_alertas = st.tabs(
+            ["Tipos de producto", "Tipos de ingreso", "Tipos de gasto", "Estados de pedido", "Alertas por correo"]
         )
 
         with tab_productos:
@@ -449,3 +649,5 @@ def page_administracion() -> None:
             )
         with tab_estados:
             _tab_estados_pedido()
+        with tab_alertas:
+            _tab_alertas_email()

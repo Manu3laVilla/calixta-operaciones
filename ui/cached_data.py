@@ -9,6 +9,11 @@ import streamlit as st
 
 from services.accounting_service import list_movements as _list_movements
 from services.alert_service import get_low_stock_alerts as _get_low_stock_alerts
+from services.alert_config_service import (
+    get_alert_email_config as _get_alert_email_config,
+    list_alert_recipients as _list_alert_recipients,
+    list_alert_send_logs as _list_alert_send_logs,
+)
 from services.catalog_service import (
     list_expense_types as _list_expense_types,
     list_income_types as _list_income_types,
@@ -70,6 +75,21 @@ def load_expense_types(active_only: bool = False) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=CACHE_TTL, show_spinner=False)
+def load_alert_email_config() -> dict:
+    return _get_alert_email_config()
+
+
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False)
+def load_alert_recipients(active_only: bool = False) -> pd.DataFrame:
+    return _list_alert_recipients(active_only=active_only)
+
+
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False)
+def load_alert_send_logs(limit: int = 20) -> pd.DataFrame:
+    return _list_alert_send_logs(limit=limit)
+
+
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False)
 def load_order_states(active_only: bool = False) -> pd.DataFrame:
     return _list_order_states(active_only=active_only)
 
@@ -85,6 +105,9 @@ def clear_data_cache() -> None:
     load_income_types.clear()
     load_expense_types.clear()
     load_order_states.clear()
+    load_alert_email_config.clear()
+    load_alert_recipients.clear()
+    load_alert_send_logs.clear()
 
 
 def filter_sales(

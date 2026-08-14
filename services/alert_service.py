@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from services.alert_config_service import get_active_alert_recipient_emails
 from services.email_service import is_email_configured, send_low_stock_alert
 from services.product_service import list_products
 
@@ -27,6 +28,6 @@ def count_low_stock() -> int:
 
 def notify_low_stock_by_email() -> int:
     alerts = get_low_stock_alerts()
-    send_low_stock_alert(alerts)
+    recipients = get_active_alert_recipient_emails()
+    send_low_stock_alert(alerts, recipients=recipients or None)
     return len(alerts)
-
