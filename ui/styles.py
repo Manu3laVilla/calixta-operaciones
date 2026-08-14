@@ -25,8 +25,73 @@ from ui.theme import (
     WHITE,
 )
 
+# Logo móvil 88px de ancho; ajuste vertical del ☰ respecto al logo.
+_MOBILE_LOGO_WIDTH_PX = 88
+_MOBILE_LOGO_HEIGHT = f"calc({_MOBILE_LOGO_WIDTH_PX}px * 176 / 246)"
+_MOBILE_MENU_MARGIN_TOP = "26px"
+
+_MOBILE_HEADER_LAYOUT_CSS = f"""
+    .st-key-calixta_nav_mobile_header {{
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        width: 100% !important;
+    }}
+
+    .st-key-calixta_nav_mobile_header [data-testid="stElementContainer"] {{
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+    }}
+
+    .calixta-mobile-header-row {{
+        display: grid !important;
+        grid-template-columns: 2.25rem 1fr 2.25rem !important;
+        align-items: start !important;
+        position: relative !important;
+        width: 100% !important;
+        min-height: {_MOBILE_LOGO_HEIGHT} !important;
+        margin-bottom: 0.1rem !important;
+    }}
+
+    .calixta-mobile-header-row .calixta-mobile-menu-link {{
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        justify-self: start !important;
+        align-self: start !important;
+        margin-top: {_MOBILE_MENU_MARGIN_TOP} !important;
+        font-size: 1.35rem !important;
+        line-height: 1 !important;
+        color: {OLIVE_DEEP} !important;
+        text-decoration: none !important;
+        padding: 0 0.15rem !important;
+        z-index: 5 !important;
+    }}
+
+    .calixta-mobile-header-row .calixta-mobile-menu-link:hover {{
+        color: {OLIVE_DARK} !important;
+    }}
+
+    .calixta-mobile-header-row .calixta-mobile-header-logo {{
+        grid-column: 1 / -1 !important;
+        grid-row: 1 !important;
+        justify-self: center !important;
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
+    }}
+
+    .calixta-mobile-header-row .calixta-nav-logo img {{
+        width: {_MOBILE_LOGO_WIDTH_PX}px !important;
+        max-width: {_MOBILE_LOGO_WIDTH_PX}px !important;
+        height: auto !important;
+        display: block !important;
+    }}
+"""
+
 CALIXTA_CSS = f"""
-<style>
+<style id="calixta-main-v25">
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {{
@@ -409,6 +474,93 @@ section[data-testid="stMain"] [data-testid="stElementContainer"]:has(.page-hero)
     background: var(--white) !important;
 }}
 
+/* Menú principal: anular botones globales (Streamlit 1.60) */
+[class*="st-key-nav_btn_"] .stButton > button,
+[class*="st-key-nav_btn_"] .stButton > button[kind="primary"],
+[class*="st-key-nav_btn_"] .stButton > button[kind="secondary"],
+[class*="st-key-nav_btn_"] .stButton > button[data-testid="stBaseButton-primary"],
+[class*="st-key-nav_btn_"] .stButton > button[data-testid="stBaseButton-secondary"] {{
+    border-radius: {RADIUS_PILL} !important;
+    clip-path: none !important;
+    white-space: nowrap !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.01em;
+    min-height: 2.15rem !important;
+    padding: 0.42rem 1.05rem !important;
+    width: auto !important;
+    box-shadow: none !important;
+    transition: background 0.18s ease, color 0.18s ease;
+}}
+
+[class*="st-key-nav_btn_"] .stButton > button[kind="secondary"],
+[class*="st-key-nav_btn_"] .stButton > button[data-testid="stBaseButton-secondary"] {{
+    background: transparent !important;
+    border: none !important;
+    color: {TEXT_MUTED} !important;
+}}
+
+[class*="st-key-nav_btn_"] .stButton > button[kind="secondary"]:hover,
+[class*="st-key-nav_btn_"] .stButton > button[data-testid="stBaseButton-secondary"]:hover {{
+    background: rgba(198, 186, 128, 0.18) !important;
+    color: {OLIVE_DARK} !important;
+}}
+
+[class*="st-key-nav_btn_"] .stButton > button[kind="primary"],
+[class*="st-key-nav_btn_"] .stButton > button[data-testid="stBaseButton-primary"] {{
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: {OLIVE_DEEP} !important;
+    font-weight: 700 !important;
+    text-decoration: underline !important;
+    text-underline-offset: 0.28rem !important;
+    text-decoration-color: {OLIVE} !important;
+    text-decoration-thickness: 2px !important;
+}}
+
+[class*="st-key-nav_btn_"] .stButton > button[kind="primary"]:hover,
+[class*="st-key-nav_btn_"] .stButton > button[data-testid="stBaseButton-primary"]:hover {{
+    background: transparent !important;
+    color: {OLIVE_DEEP} !important;
+    text-decoration-color: {OLIVE_DARK} !important;
+}}
+
+/* Hamburguesa móvil */
+[class*="st-key-nav_hamburger"] {{
+    display: none !important;
+}}
+
+[class*="st-key-nav_hamburger"] .stButton {{
+    margin: 0 !important;
+}}
+
+[class*="st-key-nav_hamburger"] .stButton > button,
+[class*="st-key-nav_hamburger"] .stButton > button[kind="secondary"],
+[class*="st-key-nav_hamburger"] .stButton > button[kind="tertiary"],
+[class*="st-key-nav_hamburger"] .stButton > button[data-testid="stBaseButton-secondary"],
+[class*="st-key-nav_hamburger"] .stButton > button[data-testid="stBaseButton-tertiary"] {{
+    border: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    color: {OLIVE_DEEP} !important;
+    font-size: 1.35rem !important;
+    line-height: 1 !important;
+    min-height: auto !important;
+    min-width: auto !important;
+    width: auto !important;
+    padding: 0.1rem 0.3rem !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}}
+
+@media (max-width: 768px) {{
+    [class*="st-key-nav_hamburger"] {{
+        display: flex !important;
+        align-items: center !important;
+    }}
+}}
+
 [data-testid="stTextInput"] input,
 [data-testid="stNumberInput"] input,
 [data-testid="stTextArea"] textarea {{
@@ -520,20 +672,52 @@ iframe[title*="calixta_autocomplete"] {{
     border-radius: var(--r-md) !important;
 }}
 
+.calixta-mobile-header-row {{
+    display: none;
+}}
+
 /* Móvil */
 @media (max-width: 768px) {{
     section[data-testid="stMain"] .block-container {{
-        padding: 0.2rem 0.85rem 4.5rem !important;
+        padding: 0.2rem 0.85rem 1.5rem !important;
     }}
 
     .welcome-title {{ font-size: 1.45rem; }}
+
+    .st-key-calixta_nav_logo_desktop {{
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }}
+
+{_MOBILE_HEADER_LAYOUT_CSS}
+
+    .st-key-calixta_nav_desktop {{
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }}
+}}
+
+@media (min-width: 769px) {{
+    .st-key-calixta_nav_mobile_header {{
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }}
 }}
 </style>
 """
 
 CALIXTA_NAV_CSS = f"""
-<style>
-/* Menú principal — minimalista tipo píldora */
+<style id="calixta-nav-v25">
 .st-key-calixta_nav {{
     width: 100vw;
     max-width: 100vw;
@@ -581,68 +765,61 @@ CALIXTA_NAV_CSS = f"""
     margin: 0 auto !important;
 }}
 
-.st-key-calixta_nav [data-testid="stHorizontalBlock"]:has([class*="st-key-nav_btn_"]) {{
+.st-key-calixta_nav_logo_desktop {{
+    display: block;
+}}
+
+.st-key-calixta_nav_desktop [data-testid="stHorizontalBlock"]:has([class*="st-key-nav_btn_"]) {{
     justify-content: center !important;
     gap: 0.35rem !important;
     flex-wrap: nowrap !important;
 }}
 
-.st-key-calixta_nav [class*="st-key-nav_btn_"] {{
+.st-key-calixta_nav_desktop [class*="st-key-nav_btn_"] {{
     flex: 0 1 auto !important;
     width: auto !important;
     min-width: unset !important;
 }}
 
-.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton {{
+.st-key-calixta_nav_desktop [class*="st-key-nav_btn_"] .stButton {{
     margin: 0 !important;
 }}
 
-.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button {{
-    border-radius: {RADIUS_PILL} !important;
-    clip-path: none !important;
-    white-space: nowrap !important;
-    font-size: 0.88rem !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.01em;
-    min-height: 2.15rem !important;
-    padding: 0.42rem 1.05rem !important;
+/* Hamburguesa móvil — oculta en escritorio */
+[class*="st-key-nav_hamburger"] {{
+    display: none !important;
+}}
+
+[class*="st-key-nav_hamburger"] .stButton {{
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+}}
+
+[class*="st-key-nav_hamburger"] .stButton > button,
+[class*="st-key-nav_hamburger"] .stButton > button[kind="secondary"],
+[class*="st-key-nav_hamburger"] .stButton > button[data-testid="stBaseButton-secondary"] {{
+    border: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    color: {OLIVE_DEEP} !important;
+    font-size: 1.35rem !important;
+    line-height: 1 !important;
+    min-height: auto !important;
+    min-width: auto !important;
     width: auto !important;
-    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
-}}
-
-.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[kind="secondary"] {{
-    background: transparent !important;
-    border: none !important;
+    padding: 0.15rem 0.35rem !important;
     box-shadow: none !important;
-    color: {TEXT_MUTED} !important;
+    border-radius: 0 !important;
 }}
 
-.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[kind="secondary"]:hover {{
-    background: rgba(198, 186, 128, 0.18) !important;
+[class*="st-key-nav_hamburger"] .stButton > button:hover,
+[class*="st-key-nav_hamburger"] .stButton > button[kind="secondary"]:hover,
+[class*="st-key-nav_hamburger"] .stButton > button[data-testid="stBaseButton-secondary"]:hover {{
+    background: transparent !important;
     color: {OLIVE_DARK} !important;
-}}
-
-.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[kind="primary"],
-.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[data-testid="stBaseButton-primary"] {{
-    background: transparent !important;
-    background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    color: {OLIVE_DEEP} !important;
-    font-weight: 700 !important;
-    text-decoration: underline !important;
-    text-underline-offset: 0.28rem !important;
-    text-decoration-color: {OLIVE} !important;
-    text-decoration-thickness: 2px !important;
-}}
-
-.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[kind="primary"]:hover,
-.st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button[data-testid="stBaseButton-primary"]:hover {{
-    background: transparent !important;
-    background-color: transparent !important;
-    color: {OLIVE_DEEP} !important;
-    border: none !important;
-    text-decoration-color: {OLIVE_DARK} !important;
 }}
 
 @media (max-width: 1100px) {{
@@ -650,7 +827,7 @@ CALIXTA_NAV_CSS = f"""
         padding: 0.25rem 0.85rem 0.15rem;
     }}
 
-    .st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button {{
+    [class*="st-key-nav_btn_"] .stButton > button {{
         font-size: 0.76rem !important;
         padding: 0.38rem 0.72rem !important;
         min-height: 1.95rem !important;
@@ -659,28 +836,46 @@ CALIXTA_NAV_CSS = f"""
 
 @media (max-width: 768px) {{
     .st-key-calixta_nav {{
-        padding: 0.2rem 0.55rem 0.1rem;
+        padding: 0.35rem 0.65rem 0.15rem;
     }}
 
-    .st-key-calixta_nav [data-testid="stHorizontalBlock"]:has([class*="st-key-nav_btn_"]) {{
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        justify-content: flex-start !important;
-        padding-bottom: 0.15rem;
+    .st-key-calixta_nav_logo_desktop {{
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
     }}
 
-    .st-key-calixta_nav [class*="st-key-nav_btn_"] {{
-        min-width: 4.8rem;
-    }}
+{_MOBILE_HEADER_LAYOUT_CSS}
 
-    .st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button {{
-        font-size: 0.7rem !important;
-        padding: 0.34rem 0.55rem !important;
+    .st-key-calixta_nav_desktop {{
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
     }}
 }}
 
-/* Ocultar botón refresh legacy */
+@media (min-width: 769px) {{
+    .st-key-calixta_nav_mobile_header {{
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }}
+
+    [class*="st-key-nav_hamburger"] {{
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }}
+}}
+
 .st-key-nav_refresh,
 [class*="st-key-nav_refresh"] {{
     display: none !important;
@@ -691,7 +886,6 @@ CALIXTA_NAV_CSS = f"""
     overflow: hidden !important;
 }}
 
-/* Menú → contenido: menos aire */
 section[data-testid="stMain"] .block-container {{
     gap: 0.2rem !important;
 }}
