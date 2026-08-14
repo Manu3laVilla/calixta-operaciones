@@ -361,7 +361,7 @@ section[data-testid="stMain"] [data-testid="stElementContainer"]:has([data-testi
 
 /* Page hero (otras páginas) */
 .page-hero {{
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.55rem;
     padding: 0 0.35rem 0;
 }}
 .page-title {{
@@ -370,7 +370,20 @@ section[data-testid="stMain"] [data-testid="stElementContainer"]:has([data-testi
     color: var(--olive-deep);
     margin: 0 0 0.3rem;
 }}
-.page-subtitle {{ color: var(--muted); margin: 0; font-size: 0.92rem; }}
+.page-subtitle {{
+    color: var(--muted);
+    margin: 0 0 0.15rem;
+    font-size: 0.92rem;
+}}
+
+section[data-testid="stMain"] [data-testid="stElementContainer"]:has(.page-hero) {{
+    margin-bottom: 0.7rem !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stElementContainer"]:has(.page-hero)
+    + [data-testid="stElementContainer"] [data-testid="stVerticalBlockBorderWrapper"] {{
+    margin-top: 0.15rem !important;
+}}
 
 .page-section-inner {{
     padding: 0.15rem 0.35rem 0.5rem;
