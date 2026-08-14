@@ -4,7 +4,7 @@ from typing import Any
 
 import pandas as pd
 
-from config import CATEGORIES, SIZES, TABLE_PRODUCTOS
+from app_config import CATEGORIES, SIZES, TABLE_PRODUCTOS
 from services.catalog_service import get_product_type, list_product_types
 from services.supabase_db import get_db, new_id, now_iso
 

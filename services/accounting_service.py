@@ -4,7 +4,7 @@ from typing import Any
 
 import pandas as pd
 
-from config import (
+from app_config import (
     MOVEMENT_TYPE_EXPENSE,
     MOVEMENT_TYPE_INCOME,
     TABLE_CONTABILIDAD,

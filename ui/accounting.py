@@ -7,7 +7,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from config import (
+from app_config import (
     MOVEMENT_TYPE_EXPENSE,
     MOVEMENT_TYPE_INCOME,
     MOVEMENT_TYPES,

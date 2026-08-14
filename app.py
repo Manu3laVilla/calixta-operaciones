@@ -7,7 +7,7 @@ from datetime import date, datetime
 import pandas as pd
 import streamlit as st
 
-from config import ALERT_EMAIL_TO, CATEGORIES, SIZES
+from app_config import ALERT_EMAIL_TO, CATEGORIES, SIZES
 from services.catalog_service import product_type_options
 from services.alert_service import notify_low_stock_by_email
 from services.customer_service import create_customer, update_customer

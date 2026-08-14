@@ -4,7 +4,7 @@ from typing import Any
 
 import pandas as pd
 
-from config import TABLE_PEDIDO_ITEMS, TABLE_PEDIDOS
+from app_config import TABLE_PEDIDO_ITEMS, TABLE_PEDIDOS
 from services.product_service import adjust_stock, get_product
 from services.sale_service import create_sale_from_order, delete_sales_by_pedido
 from services.catalog_service import (

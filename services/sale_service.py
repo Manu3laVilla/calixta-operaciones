@@ -4,7 +4,7 @@ from typing import Any
 
 import pandas as pd
 
-from config import TABLE_VENTAS
+from app_config import TABLE_VENTAS
 from services.supabase_db import get_db, new_id, now_iso
 
 

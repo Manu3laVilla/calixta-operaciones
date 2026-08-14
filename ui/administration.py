@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from config import CATEGORIES
+from app_config import CATEGORIES
 from services.catalog_service import (
     create_expense_type,
     create_income_type,

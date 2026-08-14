@@ -4,7 +4,7 @@ from typing import Any
 
 import pandas as pd
 
-from config import CATEGORIES
+from app_config import CATEGORIES
 
 TABLE_TIPOS_PRODUCTO = "tipos_producto"
 TABLE_TIPOS_INGRESO = "tipos_ingreso"

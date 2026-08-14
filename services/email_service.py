@@ -7,7 +7,7 @@ from email.mime.text import MIMEText
 
 import pandas as pd
 
-from config import ALERT_EMAIL_TO, SMTP_HOST, SMTP_PASSWORD, SMTP_PORT, SMTP_USER
+from app_config import ALERT_EMAIL_TO, SMTP_HOST, SMTP_PASSWORD, SMTP_PORT, SMTP_USER
 
 
 def is_email_configured() -> bool:
