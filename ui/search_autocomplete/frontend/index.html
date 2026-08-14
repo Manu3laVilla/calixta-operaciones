@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+    body {
+      font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #6B704C;
+    }
+    .wrap { width: 100%; }
+    .lbl {
+      display: block;
+      margin: 0 0 0.3rem;
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: #6B704C;
+    }
+    .inp {
+      width: 100%;
+      height: 2.4rem;
+      padding: 0 0.75rem;
+      border: 1px solid rgba(130, 143, 89, 0.28);
+      border-radius: 0.4rem;
+      background: #fff;
+      color: #6B704C;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .inp:focus {
+      border-color: #828F59;
+      box-shadow: 0 0 0 2px rgba(247, 195, 198, 0.45);
+    }
+    .suggest {
+      list-style: none;
+      margin: 0.12rem 0 0;
+      padding: 0;
+      border: 1px solid rgba(130, 143, 89, 0.2);
+      border-radius: 0.4rem;
+      background: #fff;
+      box-shadow: 0 6px 16px rgba(107, 112, 76, 0.1);
+      display: none;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .suggest.open { display: block; }
+    .suggest li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.34rem 0.65rem;
+      font-size: 0.82rem;
+      line-height: 1.2;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(130, 143, 89, 0.08);
+    }
+    .suggest li:last-child { border-bottom: 0; }
+    .suggest li:hover { background: rgba(255, 255, 205, 0.45); }
+    .suggest li strong { font-weight: 700; }
+    .icon { opacity: 0.5; font-size: 0.75rem; width: 0.9rem; text-align: center; }
+    .empty {
+      display: none;
+      margin-top: 0.3rem;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.76rem;
+      color: #6B704C;
+      background: rgba(247, 195, 198, 0.16);
+      border: 1px dashed rgba(183, 112, 46, 0.35);
+      border-radius: 0.35rem;
+    }
+    .empty.show { display: block; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    const root = document.getElementById("root");
+    let allOptions = [];
+    let maxResults = 12;
+    let lastSelected = "";
+    let cleared = false;
+    let mounted = false;
+    let lastArgsKey = "";
+    let lastResetToken = -1;
+
+    const Streamlit = {
+      ready() {
+        window.parent.postMessage({ isStreamlitMessage: true, type: "streamlit:componentReady", apiVersion: 1 }, "*");
+      },
+      height(h) {
+        window.parent.postMessage({ isStreamlitMessage: true, type: "streamlit:setFrameHeight", height: h }, "*");
+      },
+      value(v) {
+        window.parent.postMessage({ isStreamlitMessage: true, type: "streamlit:setComponentValue", value: v }, "*");
+      },
+    };
+
+    function escapeHtml(v) {
+      return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+    function escapeAttr(v) { return escapeHtml(v).replace(/'/g,"&#39;"); }
+
+    function argsKey(args) {
+      return JSON.stringify({
+        label: args.label || "",
+        placeholder: args.placeholder || "",
+        defaultValue: args.defaultValue || "",
+        max_results: args.max_results || 12,
+        reset_token: args.reset_token || 0,
+        options: args.options || [],
+      });
+    }
+
+    function setHeight() {
+      Streamlit.height(Math.max(document.body.scrollHeight + 2, 78));
+    }
+
+    function highlight(label, query) {
+      const lower = label.toLowerCase();
+      const q = query.toLowerCase();
+      const i = lower.indexOf(q);
+      if (i < 0) return escapeHtml(label);
+      return escapeHtml(label.slice(0, i)) + "<strong>" + escapeHtml(label.slice(i, i + q.length)) + "</strong>" + escapeHtml(label.slice(i + q.length));
+    }
+
+    function hideList(list) {
+      list.classList.remove("open");
+      list.innerHTML = "";
+    }
+
+    function bindInput(input, list, empty) {
+      input.addEventListener("input", function () {
+        renderSuggestions(input, list, empty);
+        if (lastSelected && input.value !== lastSelected && !cleared) {
+          cleared = true;
+          lastSelected = "";
+          Streamlit.value("__CLEAR__");
+        }
+      });
+      input.addEventListener("focus", function () {
+        renderSuggestions(input, list, empty);
+      });
+    }
+
+    function renderSuggestions(input, list, empty) {
+      const query = input.value.trim();
+      if (!query) {
+        hideList(list);
+        empty.classList.remove("show");
+        setHeight();
+        return;
+      }
+      const q = query.toLowerCase();
+      const matches = allOptions.filter(function (o) { return o.toLowerCase().includes(q); }).slice(0, maxResults);
+      if (!matches.length) {
+        hideList(list);
+        empty.classList.add("show");
+        setHeight();
+        return;
+      }
+      empty.classList.remove("show");
+      list.innerHTML = matches.map(function (m) {
+        return '<li data-v="' + escapeAttr(m) + '"><span class="icon">⌕</span><span>' + highlight(m, query) + "</span></li>";
+      }).join("");
+      list.classList.add("open");
+      list.querySelectorAll("li").forEach(function (li) {
+        li.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          const val = li.getAttribute("data-v");
+          input.value = val;
+          lastSelected = val;
+          cleared = false;
+          hideList(list);
+          empty.classList.remove("show");
+          Streamlit.value(val);
+          setHeight();
+        });
+      });
+      setHeight();
+    }
+
+    function mount(args, keepValue) {
+      allOptions = Array.isArray(args.options) ? args.options : [];
+      maxResults = args.max_results || 12;
+      const initial = keepValue || args.defaultValue || "";
+      lastSelected = initial;
+      cleared = false;
+
+      root.innerHTML =
+        '<div class="wrap">' +
+        '<label class="lbl">' + escapeHtml(args.label || "Buscar") + "</label>" +
+        '<input class="inp" type="text" autocomplete="off" placeholder="' + escapeHtml(args.placeholder || "") + '" value="' + escapeHtml(initial) + '" />' +
+        '<ul class="suggest"></ul>' +
+        '<div class="empty">No hay coincidencias.</div>' +
+        "</div>";
+
+      const input = root.querySelector(".inp");
+      const list = root.querySelector(".suggest");
+      const empty = root.querySelector(".empty");
+      bindInput(input, list, empty);
+      mounted = true;
+      setHeight();
+    }
+
+    window.addEventListener("message", function (event) {
+      if (!event.data || event.data.type !== "streamlit:render") return;
+      const args = event.data.args || {};
+      const resetToken = args.reset_token || 0;
+
+      if (resetToken !== lastResetToken) {
+        lastResetToken = resetToken;
+        lastArgsKey = argsKey(args);
+        mount(args, "");
+        return;
+      }
+
+      const key = argsKey(args);
+      const prevInput = root.querySelector(".inp");
+      const keepValue = prevInput ? prevInput.value : "";
+
+      allOptions = Array.isArray(args.options) ? args.options : [];
+      maxResults = args.max_results || 12;
+
+      if (!mounted || key !== lastArgsKey) {
+        lastArgsKey = key;
+        mount(args, keepValue || args.defaultValue || "");
+        return;
+      }
+
+      if (prevInput && args.defaultValue && args.defaultValue !== lastSelected) {
+        prevInput.value = args.defaultValue;
+        lastSelected = args.defaultValue;
+        hideList(root.querySelector(".suggest"));
+        root.querySelector(".empty").classList.remove("show");
+      }
+      setHeight();
+    });
+
+    document.addEventListener("click", function (e) {
+      if (!root.contains(e.target)) {
+        const list = root.querySelector(".suggest");
+        if (list) hideList(list);
+        setHeight();
+      }
+    });
+
+    Streamlit.ready();
+  </script>
+</body>
+</html>

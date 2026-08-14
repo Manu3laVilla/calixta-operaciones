@@ -29,7 +29,15 @@ from ui.charts import (
     accounting_by_category_chart,
     accounting_comparison_chart,
 )
-from ui.components import page_header, page_section, panel_card, stat_chips
+from ui.components import (
+    calixta_table,
+    clear_search_select,
+    page_header,
+    page_section,
+    panel_card,
+    search_select,
+    stat_chips,
+)
 from ui.styles import format_cop
 
 
@@ -100,7 +108,7 @@ def _tab_resumen() -> None:
             display = summary.copy()
             display["monto"] = display["monto"].apply(format_cop)
             display.columns = ["Tipo", "Categoría", "Monto"]
-            st.dataframe(display, use_container_width=True, hide_index=True)
+            calixta_table(display, key="acc_category_summary", paginate=False)
 
     st.markdown('<p class="dashboard-section-title">Resumen visual</p>', unsafe_allow_html=True)
 
@@ -211,8 +219,14 @@ def _tab_editar_movimiento() -> None:
         return
 
     options = {movement_label(row.to_dict()): row["id"] for _, row in movements.iterrows()}
-    selected = st.selectbox("Selecciona movimiento", list(options.keys()), key="acc_edit_select")
-    movement_id = options[selected]
+    movement_id = search_select(
+        "Buscar movimiento",
+        options,
+        key="acc_edit_select",
+        placeholder="Buscar por fecha, tipo, concepto, monto o ID…",
+    )
+    if movement_id is None:
+        return
     current = get_movement(movement_id)
     if current is None:
         st.error("No se encontró el movimiento seleccionado.")
@@ -268,6 +282,7 @@ def _tab_editar_movimiento() -> None:
                     },
                 )
                 st.success("Movimiento actualizado.")
+                clear_search_select("acc_edit_select")
                 _refresh_and_rerun()
             except Exception as exc:
                 st.error(str(exc))
@@ -300,7 +315,7 @@ def _tab_movimientos() -> None:
         columns = ["id", "fecha", "tipo", "categoria", "concepto", "monto", "notas"]
         display = display[[c for c in columns if c in display.columns]]
         display.columns = ["ID", "Fecha", "Tipo", "Categoría", "Concepto", "Monto", "Notas"]
-        st.dataframe(display, use_container_width=True, hide_index=True)
+        calixta_table(display, key="acc_movements_list")
 
 
 def page_contabilidad() -> None:

@@ -421,10 +421,99 @@ section[data-testid="stMain"] [data-testid="stElementContainer"]:has(.page-hero)
     box-shadow: 0 0 0 2px rgba(247,195,198,0.5) !important;
 }}
 
-[data-testid="stDataFrame"] {{
-    border-radius: var(--r-md);
-    border: 1px solid var(--border);
-    overflow: hidden;
+/* Tablas Calixta */
+.calixta-table-frame {{
+    display: none;
+}}
+
+.calixta-table-frame + [data-testid="stElementContainer"] {{
+    margin-bottom: 0.15rem !important;
+    padding: 0.35rem 0.45rem 0.4rem !important;
+    border-radius: var(--r-md) !important;
+    border: 1px solid rgba(130, 143, 89, 0.24) !important;
+    border-top: 3px solid {OLIVE} !important;
+    background: linear-gradient(
+        165deg,
+        rgba(255, 255, 255, 0.99) 0%,
+        rgba(247, 195, 198, 0.07) 38%,
+        rgba(248, 246, 242, 0.97) 100%
+    ) !important;
+    box-shadow: 0 10px 26px rgba(107, 112, 76, 0.07) !important;
+}}
+
+.calixta-table-frame + [data-testid="stElementContainer"] [data-testid="stDataFrame"],
+section[data-testid="stMain"] [data-testid="stDataFrame"] {{
+    border-radius: calc(var(--r-md) - 2px) !important;
+    border: 1px solid rgba(130, 143, 89, 0.14) !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+    overflow: hidden !important;
+}}
+
+.calixta-table-meta {{
+    margin: 0.45rem 0 0.1rem;
+    padding: 0.42rem 0.85rem;
+    text-align: center;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
+    color: {OLIVE_DARK};
+    background: linear-gradient(
+        90deg,
+        rgba(198, 186, 128, 0.12) 0%,
+        rgba(247, 195, 198, 0.18) 50%,
+        rgba(198, 186, 128, 0.12) 100%
+    );
+    border: 1px solid rgba(130, 143, 89, 0.18);
+    border-radius: var(--r-pill);
+}}
+
+/* Solo paginador real (con número de página), no contador suelto */
+.calixta-table-meta:not(:has(strong)) {{
+    display: none !important;
+}}
+
+.calixta-table-meta strong {{
+    color: {OLIVE_DEEP};
+    font-weight: 600;
+}}
+
+.calixta-table-frame ~ [data-testid="stHorizontalBlock"] {{
+    margin-top: 0.15rem !important;
+    padding: 0.2rem 0.35rem 0.05rem !important;
+    border-radius: var(--r-md) !important;
+    border: 1px solid rgba(130, 143, 89, 0.12) !important;
+    background: rgba(255, 255, 255, 0.72) !important;
+}}
+
+.calixta-table-frame ~ [data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"] {{
+    border-color: rgba(130, 143, 89, 0.28) !important;
+    color: {OLIVE_DARK} !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+    font-size: 0.78rem !important;
+    min-height: 2rem !important;
+    font-weight: 500 !important;
+}}
+
+.calixta-table-frame ~ [data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"]:hover:not(:disabled) {{
+    border-color: {OLIVE} !important;
+    color: {OLIVE_DEEP} !important;
+    background: rgba(255, 255, 205, 0.45) !important;
+}}
+
+.calixta-table-frame ~ [data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"]:disabled {{
+    opacity: 0.45 !important;
+}}
+
+/* Autocompletado integrado */
+iframe[title*="calixta_autocomplete"] {{
+    border: 0 !important;
+    background: transparent !important;
+    width: 100% !important;
+}}
+
+[data-testid="stIFrame"]:has(iframe[title*="calixta_autocomplete"]) {{
+    margin-bottom: 0 !important;
+    background: transparent !important;
 }}
 
 [data-testid="stAlert"] {{
