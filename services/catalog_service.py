@@ -4,16 +4,15 @@ from typing import Any
 
 import pandas as pd
 
-from config import (
-    CATEGORIES,
-    TABLE_CONTABILIDAD,
-    TABLE_ESTADOS_PEDIDO,
-    TABLE_PEDIDOS,
-    TABLE_PRODUCTOS,
-  TABLE_TIPOS_INGRESO,
-  TABLE_TIPOS_GASTO,
-  TABLE_TIPOS_PRODUCTO,
-)
+from config import CATEGORIES
+
+TABLE_TIPOS_PRODUCTO = "tipos_producto"
+TABLE_TIPOS_INGRESO = "tipos_ingreso"
+TABLE_TIPOS_GASTO = "tipos_gasto"
+TABLE_ESTADOS_PEDIDO = "estados_pedido"
+TABLE_PEDIDOS = "pedidos"
+TABLE_PRODUCTOS = "productos"
+TABLE_CONTABILIDAD = "contabilidad"
 from services.supabase_db import get_db, new_id, now_iso
 
 
