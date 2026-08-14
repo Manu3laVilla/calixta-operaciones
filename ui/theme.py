@@ -47,5 +47,6 @@ NAV_ITEMS: list[tuple[str, str]] = [
     ("Pedidos", "pedidos"),
     ("Ventas", "ventas"),
     ("Contabilidad", "contabilidad"),
+    ("Administración", "administracion"),
     ("Alertas", "alertas"),
 ]

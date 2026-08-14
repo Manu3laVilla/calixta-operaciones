@@ -7,13 +7,17 @@ from datetime import date, datetime
 import pandas as pd
 import streamlit as st
 
-from config import ALERT_EMAIL_TO, CATEGORIES, DELIVERED_STATE, ORDER_STATES, SIZES
+from config import ALERT_EMAIL_TO, CATEGORIES, SIZES
+from services.catalog_service import product_type_options
 from services.alert_service import notify_low_stock_by_email
-from services.email_service import is_email_configured
 from services.customer_service import create_customer, update_customer
+from services.email_service import is_email_configured
 from services.order_service import (
     create_order,
     delete_order,
+    get_allowed_next_states,
+    list_editable_orders,
+    state_requires_sale_date,
     update_order,
     update_order_status,
 )
@@ -25,6 +29,7 @@ from ui.cached_data import (
     get_order_items_cached,
     load_customers,
     load_low_stock_alerts,
+    load_order_states,
     load_orders,
     load_products,
     load_sales,
@@ -40,6 +45,7 @@ from ui.components import (
     stat_chips,
 )
 from ui.accounting import page_contabilidad
+from ui.administration import page_administracion
 from ui.navigation import nav_layout
 from ui.charts import (
     PLOTLY_CONFIG,
@@ -76,6 +82,36 @@ def init_connection() -> bool:
             f"Detalle: {exc}"
         )
         return False
+
+
+def _tipo_selectbox(
+    categoria: str,
+    key: str,
+    *,
+    default_type_id: str | None = None,
+) -> str | None:
+    options = product_type_options(categoria, active_only=True)
+    if not options:
+        st.warning(
+            f"No hay tipos activos para «{categoria}». "
+            "Créalos en Administración → Tipos de producto."
+        )
+        return None
+
+    labels = [name for name, _ in options]
+    type_ids = [type_id for _, type_id in options]
+    default_index = 0
+    if default_type_id and default_type_id in type_ids:
+        default_index = type_ids.index(default_type_id)
+
+    selected_index = st.selectbox(
+        "Tipo *",
+        range(len(labels)),
+        format_func=lambda index: labels[index],
+        index=default_index,
+        key=key,
+    )
+    return type_ids[selected_index]
 
 
 def _refresh_and_rerun() -> None:
@@ -246,9 +282,15 @@ def _dashboard_filters(
                 key="dash_categoria",
             )
         with c4:
+            order_states = load_order_states(active_only=False)
+            state_names = (
+                [str(name) for name in order_states["nombre"].tolist()]
+                if not order_states.empty
+                else ["Recibido", "Pago Confirmado", "Envío Agendado", "Entregado"]
+            )
             estado = st.selectbox(
                 "Estado pedido",
-                ["Todos", *ORDER_STATES],
+                ["Todos", *state_names],
                 key="dash_estado",
             )
 
@@ -321,8 +363,15 @@ def page_dashboard() -> None:
 
     total_revenue = float(sales["subtotal"].sum()) if not sales.empty else 0.0
     units_sold = int(sales["cantidad"].sum()) if not sales.empty else 0
-    delivered = len(orders[orders["estado"] == DELIVERED_STATE]) if not orders.empty else 0
-    pending_orders = len(orders[orders["estado"] != DELIVERED_STATE]) if not orders.empty else 0
+    if not orders.empty and "venta_registrada" in orders.columns:
+        sold_mask = orders["venta_registrada"].astype(str).str.lower().isin(
+            ("true", "1", "si", "sí", "yes")
+        )
+        delivered = int(sold_mask.sum())
+        pending_orders = int((~sold_mask).sum())
+    else:
+        delivered = 0
+        pending_orders = len(orders) if not orders.empty else 0
 
     stat_chips([
         ("Ingresos", format_cop(total_revenue), "en el período", "terra"),
@@ -440,14 +489,17 @@ def page_products() -> None:
                 calixta_table(display, key="products_list")
 
         with tab_new:
+            categoria = st.selectbox("Categoría *", CATEGORIES, key="new_product_cat")
+            tipo_id = _tipo_selectbox(categoria, "new_product_tipo")
+            talla = None
+            if categoria == "Ropa":
+                talla = st.selectbox("Talla *", SIZES, key="new_product_talla")
+
             with st.form("new_product_form", clear_on_submit=True):
                 c1, c2 = st.columns(2)
                 referencia = c1.text_input("Referencia *")
                 nombre = c2.text_input("Nombre *")
-                c3, c4, c5 = st.columns(3)
-                color = c3.text_input("Color *")
-                talla = c4.selectbox("Talla *", SIZES)
-                categoria = c5.selectbox("Categoría *", CATEGORIES)
+                color = st.text_input("Color *")
                 descripcion = st.text_area("Descripción")
                 c6, c7, c8 = st.columns(3)
                 stock = c6.number_input("Stock inicial", min_value=0, step=1)
@@ -457,10 +509,20 @@ def page_products() -> None:
                 if st.form_submit_button("Guardar producto", type="primary"):
                     if not referencia.strip() or not nombre.strip() or not color.strip():
                         st.error("Referencia, nombre y color son obligatorios.")
+                    elif tipo_id is None:
+                        st.error("Selecciona un tipo de producto válido.")
                     else:
                         product = create_product(
-                            referencia, nombre, color, talla, categoria,
-                            descripcion, stock, stock_minimo, precio,
+                            referencia,
+                            nombre,
+                            color,
+                            talla,
+                            categoria,
+                            tipo_id,
+                            descripcion,
+                            stock,
+                            stock_minimo,
+                            precio,
                         )
                         st.success(f"Producto creado: {product['nombre']} ({product['id']})")
                         _refresh_and_rerun()
@@ -482,22 +544,41 @@ def page_products() -> None:
                 )
                 if product_id is not None:
                     current = products[products["id"] == product_id].iloc[0]
+                    current_categoria = str(current.get("categoria", CATEGORIES[0]))
+                    if st.session_state.get("edit_product_loaded") != product_id:
+                        st.session_state["edit_product_cat"] = current_categoria
+                        st.session_state["edit_product_loaded"] = product_id
+
+                    categoria = st.selectbox(
+                        "Categoría",
+                        CATEGORIES,
+                        index=CATEGORIES.index(current_categoria)
+                        if current_categoria in CATEGORIES else 0,
+                        key="edit_product_cat",
+                    )
+                    tipo_id = _tipo_selectbox(
+                        categoria,
+                        "edit_product_tipo",
+                        default_type_id=str(current.get("tipo_id", "")) or None,
+                    )
+                    talla = None
+                    if categoria == "Ropa":
+                        current_talla = str(current.get("talla", ""))
+                        talla = st.selectbox(
+                            "Talla",
+                            SIZES,
+                            index=SIZES.index(current_talla) if current_talla in SIZES else 0,
+                            key="edit_product_talla",
+                        )
 
                     with st.form("edit_product_form"):
                         c1, c2 = st.columns(2)
-                        referencia = c1.text_input("Referencia", value=str(current.get("referencia", "")))
+                        referencia = c1.text_input(
+                            "Referencia",
+                            value=str(current.get("referencia", "")),
+                        )
                         nombre = c2.text_input("Nombre", value=str(current["nombre"]))
-                        c3, c4, c5 = st.columns(3)
-                        color = c3.text_input("Color", value=str(current.get("color", "")))
-                        talla = c4.selectbox(
-                            "Talla", SIZES,
-                            index=SIZES.index(current["talla"]) if current.get("talla") in SIZES else 0,
-                        )
-                        categoria = c5.selectbox(
-                            "Categoría", CATEGORIES,
-                            index=CATEGORIES.index(current["categoria"])
-                            if current.get("categoria") in CATEGORIES else 0,
-                        )
+                        color = st.text_input("Color", value=str(current.get("color", "")))
                         descripcion = st.text_area(
                             "Descripción", value=str(current.get("descripcion", ""))
                         )
@@ -512,24 +593,29 @@ def page_products() -> None:
                         activo = c9.selectbox("Activo", ["Si", "No"])
 
                         if st.form_submit_button("Actualizar", type="primary"):
-                            update_product(
-                                product_id,
-                                {
-                                    "referencia": referencia,
-                                    "nombre": nombre,
-                                    "color": color,
-                                    "talla": talla,
-                                    "categoria": categoria,
-                                    "descripcion": descripcion,
-                                    "stock": stock,
-                                    "stock_minimo": stock_minimo,
-                                    "precio": precio,
-                                    "activo": activo,
-                                },
-                            )
-                            st.success("Producto actualizado.")
-                            clear_search_select("edit_product_sel")
-                            _refresh_and_rerun()
+                            if tipo_id is None:
+                                st.error("Selecciona un tipo de producto válido.")
+                            else:
+                                update_product(
+                                    product_id,
+                                    {
+                                        "referencia": referencia,
+                                        "nombre": nombre,
+                                        "color": color,
+                                        "talla": talla,
+                                        "categoria": categoria,
+                                        "tipo_id": tipo_id,
+                                        "descripcion": descripcion,
+                                        "stock": stock,
+                                        "stock_minimo": stock_minimo,
+                                        "precio": precio,
+                                        "activo": activo,
+                                    },
+                                )
+                                st.success("Producto actualizado.")
+                                clear_search_select("edit_product_sel")
+                                st.session_state.pop("edit_product_loaded", None)
+                                _refresh_and_rerun()
 
 
 def page_customers() -> None:
@@ -668,13 +754,12 @@ def page_orders() -> None:
                                 st.error(str(exc))
 
         with tab_edit:
-            orders = load_orders()
-            editable = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
+            editable = list_editable_orders()
             products = load_products(active_only=True)
             customers = load_customers()
 
             if editable.empty:
-                st.info("No hay pedidos editables (los entregados no se pueden modificar).")
+                st.info("No hay pedidos editables en su estado actual.")
             else:
                 options = {
                     f"{row['id']} | {row['cliente_nombre']} | {row['estado']}": row["id"]
@@ -687,6 +772,7 @@ def page_orders() -> None:
                     placeholder="Buscar por ID de pedido, cliente o estado…",
                 )
                 if order_id is not None:
+                    orders = load_orders()
                     order = orders[orders["id"] == order_id].iloc[0]
 
                     customer_options = {
@@ -745,54 +831,66 @@ def page_orders() -> None:
 
         with tab_status:
             orders = load_orders()
-            pending = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
 
-            if pending.empty:
-                st.info("No hay pedidos pendientes de actualizar.")
+            if orders.empty:
+                st.info("No hay pedidos registrados.")
             else:
-                options = {
-                    f"{row['id']} | {row['cliente_nombre']} | {row['estado']}": row["id"]
-                    for _, row in pending.iterrows()
-                }
-                order_id = search_select(
-                    "Buscar pedido",
-                    options,
-                    key="status_order_sel",
-                    placeholder="Buscar por ID de pedido, cliente o estado…",
-                )
-                if order_id is not None:
-                    items = get_order_items_cached(order_id)
+                status_options = {}
+                for _, row in orders.iterrows():
+                    order_dict = row.to_dict()
+                    allowed = get_allowed_next_states(order_dict)
+                    if allowed:
+                        status_options[
+                            f"{row['id']} | {row['cliente_nombre']} | {row['estado']}"
+                        ] = row["id"]
 
-                    if items:
-                        calixta_table(
-                            pd.DataFrame(items),
-                            key=f"order_items_{order_id}",
-                            paginate=len(items) > 10,
+                if not status_options:
+                    st.info("No hay pedidos con transiciones de estado disponibles.")
+                else:
+                    order_id = search_select(
+                        "Buscar pedido",
+                        status_options,
+                        key="status_order_sel",
+                        placeholder="Buscar por ID de pedido, cliente o estado…",
+                    )
+                    if order_id is not None:
+                        items = get_order_items_cached(order_id)
+
+                        if items:
+                            calixta_table(
+                                pd.DataFrame(items),
+                                key=f"order_items_{order_id}",
+                                paginate=len(items) > 10,
+                            )
+
+                        current = orders[orders["id"] == order_id].iloc[0]
+                        st.caption(f"Dirección: {current.get('direccion_entrega', '')}")
+
+                        order_dict = current.to_dict()
+                        allowed_states = get_allowed_next_states(order_dict)
+                        new_status = st.selectbox(
+                            "Nuevo estado",
+                            allowed_states,
+                            key="new_status_sel",
                         )
+                        fecha_entrega = None
+                        if state_requires_sale_date(new_status):
+                            c1, c2 = st.columns(2)
+                            entrega_date = c1.date_input("Fecha de venta", value=date.today())
+                            entrega_time = c2.time_input("Hora de venta", value=datetime.now().time())
+                            fecha_entrega = f"{entrega_date} {entrega_time.strftime('%H:%M:%S')}"
 
-                    current = orders[orders["id"] == order_id].iloc[0]
-                    st.caption(f"Dirección: {current.get('direccion_entrega', '')}")
-
-                    new_status = st.selectbox("Nuevo estado", ORDER_STATES, key="new_status_sel")
-                    fecha_entrega = None
-                    if new_status == DELIVERED_STATE:
-                        c1, c2 = st.columns(2)
-                        entrega_date = c1.date_input("Fecha de entrega", value=date.today())
-                        entrega_time = c2.time_input("Hora de entrega", value=datetime.now().time())
-                        fecha_entrega = f"{entrega_date} {entrega_time.strftime('%H:%M:%S')}"
-
-                    if st.button("Actualizar estado", type="primary", key="update_status_btn"):
-                        try:
-                            update_order_status(order_id, new_status, fecha_entrega)
-                            st.success(f"Pedido {order_id} → {new_status}")
-                            clear_search_select("status_order_sel")
-                            _refresh_and_rerun()
-                        except Exception as exc:
-                            st.error(str(exc))
+                        if st.button("Actualizar estado", type="primary", key="update_status_btn"):
+                            try:
+                                update_order_status(order_id, new_status, fecha_entrega)
+                                st.success(f"Pedido {order_id} → {new_status}")
+                                clear_search_select("status_order_sel")
+                                _refresh_and_rerun()
+                            except Exception as exc:
+                                st.error(str(exc))
 
         with tab_delete:
-            orders = load_orders()
-            deletable = orders[orders["estado"] != DELIVERED_STATE] if not orders.empty else orders
+            deletable = list_editable_orders()
 
             if deletable.empty:
                 st.info("No hay pedidos que se puedan eliminar.")
@@ -941,6 +1039,7 @@ def main() -> None:
             "pedidos": page_orders,
             "ventas": page_sales,
             "contabilidad": page_contabilidad,
+            "administracion": page_administracion,
             "alertas": page_alerts,
         }
         pages[page]()

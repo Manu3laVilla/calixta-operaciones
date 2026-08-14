@@ -4,10 +4,23 @@ from typing import Any
 
 import pandas as pd
 
-from config import DELIVERED_STATE, ORDER_STATES, TABLE_PEDIDO_ITEMS, TABLE_PEDIDOS
+from config import TABLE_PEDIDO_ITEMS, TABLE_PEDIDOS
 from services.product_service import adjust_stock, get_product
-from services.sale_service import create_sale_from_order
+from services.sale_service import create_sale_from_order, delete_sales_by_pedido
+from services.catalog_service import (
+    get_initial_order_state_name,
+    get_order_state_by_name,
+    get_allowed_next_states,
+    order_state_blocks_editing,
+    order_state_names,
+)
 from services.supabase_db import get_db, new_id, now_iso
+
+
+def _activo_to_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in ("si", "sí", "true", "1", "yes")
 
 
 def _items_to_records(
@@ -21,7 +34,7 @@ def _items_to_records(
             "referencia": item.get("referencia", ""),
             "producto_nombre": item.get("producto_nombre", ""),
             "color": item.get("color", ""),
-            "talla": item.get("talla", ""),
+            "talla": item.get("talla") or "",
             "cantidad": int(item["cantidad"]),
             "precio_unitario": float(item["precio_unitario"]),
             "subtotal": float(item["subtotal"]),
@@ -56,7 +69,7 @@ def _normalize_items(items: list[dict[str, Any]]) -> tuple[list[dict[str, Any]],
                 "referencia": product.get("referencia", ""),
                 "producto_nombre": product.get("nombre", ""),
                 "color": product.get("color", ""),
-                "talla": product.get("talla", ""),
+                "talla": product.get("talla", "") or "",
                 "cantidad": qty,
                 "precio_unitario": price,
                 "subtotal": subtotal,
@@ -67,8 +80,61 @@ def _normalize_items(items: list[dict[str, Any]]) -> tuple[list[dict[str, Any]],
 
 
 def _ensure_editable(order: dict[str, Any]) -> None:
-    if str(order.get("estado", "")) == DELIVERED_STATE:
-        raise ValueError("No se puede modificar un pedido ya entregado.")
+    if order_state_blocks_editing(str(order.get("estado", ""))):
+        raise ValueError("No se puede modificar un pedido en su estado actual.")
+
+
+def _reserve_stock(items: list[dict[str, Any]]) -> None:
+    for item in items:
+        adjust_stock(str(item["producto_id"]), -int(item["cantidad"]))
+
+
+def _release_stock(items: list[dict[str, Any]]) -> None:
+    for item in items:
+        adjust_stock(str(item["producto_id"]), int(item["cantidad"]))
+
+
+def _register_sale(order: dict[str, Any], items: list[dict[str, Any]], fecha_entrega: str) -> None:
+    for item in items:
+        product = get_product(str(item["producto_id"]))
+        if product is None:
+            raise ValueError(f"Producto no encontrado: {item['producto_id']}")
+
+        create_sale_from_order(
+            pedido_id=str(order["id"]),
+            cliente_id=str(order["cliente_id"]),
+            cliente_nombre=str(order["cliente_nombre"]),
+            producto=product,
+            cantidad=int(item["cantidad"]),
+            precio_unitario=float(item["precio_unitario"]),
+            fecha_entrega=fecha_entrega,
+        )
+
+
+def _apply_genera_venta(order: dict[str, Any], fecha_entrega: str) -> dict[str, Any]:
+    if _activo_to_bool(order.get("venta_registrada", False)):
+        return {"venta_registrada": True, "stock_reservado": False}
+
+    items = get_order_items(str(order["id"]))
+    _register_sale(order, items, fecha_entrega)
+    return {"venta_registrada": True, "stock_reservado": False}
+
+
+def _apply_revierte_venta(order: dict[str, Any]) -> dict[str, Any]:
+    items = get_order_items(str(order["id"]))
+    venta_registrada = _activo_to_bool(order.get("venta_registrada", False))
+    stock_reservado = _activo_to_bool(order.get("stock_reservado", False))
+
+    if venta_registrada:
+        delete_sales_by_pedido(str(order["id"]))
+        _release_stock(items)
+        return {"venta_registrada": False, "stock_reservado": False}
+
+    if stock_reservado:
+        _release_stock(items)
+        return {"stock_reservado": False}
+
+    return {}
 
 
 def list_orders(estado: str | None = None) -> pd.DataFrame:
@@ -99,15 +165,20 @@ def create_order(
     notas: str = "",
 ) -> dict[str, Any]:
     normalized_items, total = _normalize_items(items)
+    _reserve_stock(normalized_items)
+
     db = get_db()
     timestamp = now_iso()
+    initial_state = get_initial_order_state_name()
 
     order = {
         "id": new_id("PED"),
         "cliente_id": cliente_id,
         "cliente_nombre": cliente_nombre,
         "total": total,
-        "estado": "Recibido",
+        "estado": initial_state,
+        "venta_registrada": False,
+        "stock_reservado": True,
         "direccion_entrega": direccion_entrega.strip(),
         "fecha_entrega": None,
         "fecha_creacion": timestamp,
@@ -132,9 +203,14 @@ def update_order(
         return False
 
     _ensure_editable(order)
+    old_items = get_order_items(order_id)
     normalized_items, total = _normalize_items(items)
-    db = get_db()
 
+    if _activo_to_bool(order.get("stock_reservado", False)):
+        _release_stock(old_items)
+        _reserve_stock(normalized_items)
+
+    db = get_db()
     updated = db.update_by_id(
         TABLE_PEDIDOS,
         order_id,
@@ -161,27 +237,12 @@ def delete_order(order_id: str) -> bool:
         return False
 
     _ensure_editable(order)
+
+    if _activo_to_bool(order.get("stock_reservado", False)):
+        _release_stock(get_order_items(order_id))
+
     get_db().delete_by_id(TABLE_PEDIDOS, order_id)
     return True
-
-
-def _deliver_order(order: dict[str, Any], fecha_entrega: str) -> None:
-    items = get_order_items(str(order["id"]))
-    for item in items:
-        product = get_product(str(item["producto_id"]))
-        if product is None:
-            raise ValueError(f"Producto no encontrado: {item['producto_id']}")
-
-        adjust_stock(str(item["producto_id"]), -int(item["cantidad"]))
-        create_sale_from_order(
-            pedido_id=str(order["id"]),
-            cliente_id=str(order["cliente_id"]),
-            cliente_nombre=str(order["cliente_nombre"]),
-            producto=product,
-            cantidad=int(item["cantidad"]),
-            precio_unitario=float(item["precio_unitario"]),
-            fecha_entrega=fecha_entrega,
-        )
 
 
 def update_order_status(
@@ -189,27 +250,36 @@ def update_order_status(
     new_status: str,
     fecha_entrega: str | None = None,
 ) -> bool:
-    if new_status not in ORDER_STATES:
-        raise ValueError(f"Estado inválido. Usa uno de: {', '.join(ORDER_STATES)}")
+    valid_states = order_state_names(active_only=True)
+    if new_status not in valid_states:
+        raise ValueError(f"Estado inválido. Usa uno de: {', '.join(valid_states)}")
 
     order = get_order(order_id)
     if order is None:
         return False
 
-    previous_status = str(order.get("estado", ""))
-    if previous_status == DELIVERED_STATE:
-        raise ValueError("Un pedido entregado no puede cambiar de estado.")
+    allowed = get_allowed_next_states(order)
+    if new_status not in allowed and str(order.get("estado", "")) != new_status:
+        raise ValueError("Transición de estado no permitida para este pedido.")
+
+    state_config = get_order_state_by_name(new_status)
+    if state_config is None:
+        raise ValueError("Estado de pedido no configurado.")
 
     updates: dict[str, Any] = {
         "estado": new_status,
         "fecha_actualizacion": now_iso(),
     }
 
-    if new_status == DELIVERED_STATE:
+    if _activo_to_bool(state_config.get("genera_venta", False)):
         if not fecha_entrega:
-            raise ValueError("Debe indicar la fecha y hora de entrega.")
-        _deliver_order(order, fecha_entrega)
+            raise ValueError("Debe indicar la fecha y hora de registro de la venta.")
+        updates.update(_apply_genera_venta(order, fecha_entrega))
         updates["fecha_entrega"] = fecha_entrega
+
+    if _activo_to_bool(state_config.get("revierte_venta", False)):
+        updates.update(_apply_revierte_venta(order))
+        updates["fecha_entrega"] = None
 
     return get_db().update_by_id(TABLE_PEDIDOS, order_id, updates)
 
@@ -226,10 +296,24 @@ def get_order_items(order_id: str) -> list[dict[str, Any]]:
             "referencia": row.get("referencia", ""),
             "producto_nombre": row.get("producto_nombre", ""),
             "color": row.get("color", ""),
-            "talla": row.get("talla", ""),
+            "talla": row.get("talla", "") or "",
             "cantidad": row["cantidad"],
             "precio_unitario": row["precio_unitario"],
             "subtotal": row["subtotal"],
         }
         for row in rows
     ]
+
+
+def list_editable_orders() -> pd.DataFrame:
+    df = list_orders()
+    if df.empty:
+        return df
+    return df[~df["estado"].astype(str).map(order_state_blocks_editing)]
+
+
+def state_requires_sale_date(state_name: str) -> bool:
+    config = get_order_state_by_name(state_name)
+    if config is None:
+        return False
+    return _activo_to_bool(config.get("genera_venta", False))

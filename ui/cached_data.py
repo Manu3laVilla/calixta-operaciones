@@ -1,8 +1,7 @@
-"""Capa de caché para reducir lecturas a Google Sheets."""
+"""Capa de caché para reducir lecturas a Supabase."""
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 import pandas as pd
@@ -10,7 +9,14 @@ import streamlit as st
 
 from services.accounting_service import list_movements as _list_movements
 from services.alert_service import get_low_stock_alerts as _get_low_stock_alerts
+from services.catalog_service import (
+    list_expense_types as _list_expense_types,
+    list_income_types as _list_income_types,
+    list_order_states as _list_order_states,
+    list_product_types as _list_product_types,
+)
 from services.customer_service import list_customers as _list_customers
+from services.order_service import get_order_items as _get_order_items
 from services.order_service import list_orders as _list_orders
 from services.product_service import list_products as _list_products
 from services.sale_service import list_sales as _list_sales
@@ -48,6 +54,26 @@ def load_low_stock_alerts() -> pd.DataFrame:
     return _get_low_stock_alerts()
 
 
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False)
+def load_product_types(active_only: bool = False) -> pd.DataFrame:
+    return _list_product_types(active_only=active_only)
+
+
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False)
+def load_income_types(active_only: bool = False) -> pd.DataFrame:
+    return _list_income_types(active_only=active_only)
+
+
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False)
+def load_expense_types(active_only: bool = False) -> pd.DataFrame:
+    return _list_expense_types(active_only=active_only)
+
+
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False)
+def load_order_states(active_only: bool = False) -> pd.DataFrame:
+    return _list_order_states(active_only=active_only)
+
+
 def clear_data_cache() -> None:
     load_products.clear()
     load_customers.clear()
@@ -55,6 +81,10 @@ def clear_data_cache() -> None:
     load_orders.clear()
     load_movements.clear()
     load_low_stock_alerts.clear()
+    load_product_types.clear()
+    load_income_types.clear()
+    load_expense_types.clear()
+    load_order_states.clear()
 
 
 def filter_sales(
@@ -86,20 +116,4 @@ def filter_sales(
 
 
 def get_order_items_cached(order_id: str) -> list[dict[str, Any]]:
-    orders = load_orders()
-    if orders.empty:
-        return []
-
-    match = orders[orders["id"].astype(str) == str(order_id)]
-    if match.empty:
-        return []
-
-    items_json = str(match.iloc[0].get("items_json", ""))
-    if not items_json:
-        return []
-
-    try:
-        items = json.loads(items_json)
-        return items if isinstance(items, list) else []
-    except json.JSONDecodeError:
-        return []
+    return _get_order_items(order_id)

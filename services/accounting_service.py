@@ -5,13 +5,11 @@ from typing import Any
 import pandas as pd
 
 from config import (
-    DELIVERED_STATE,
-    EXPENSE_CATEGORIES,
-    INCOME_CATEGORIES,
     MOVEMENT_TYPE_EXPENSE,
     MOVEMENT_TYPE_INCOME,
     TABLE_CONTABILIDAD,
 )
+from services.catalog_service import expense_type_names, income_type_names
 from services.supabase_db import get_db, new_id, now_iso
 
 
@@ -37,6 +35,16 @@ def _normalize_fecha(fecha: str) -> str:
     return value
 
 
+def _valid_income_categories() -> list[str]:
+    names = income_type_names(active_only=False)
+    return names if names else ["Capital", "Inversión", "Otros ingresos"]
+
+
+def _valid_expense_categories() -> list[str]:
+    names = expense_type_names(active_only=False)
+    return names if names else ["Insumos", "Equipos", "Otros gastos"]
+
+
 def create_movement(
     tipo: str,
     categoria: str,
@@ -50,7 +58,11 @@ def create_movement(
     if monto <= 0:
         raise ValueError("El monto debe ser mayor a cero.")
 
-    valid_categories = INCOME_CATEGORIES if tipo == MOVEMENT_TYPE_INCOME else EXPENSE_CATEGORIES
+    valid_categories = (
+        _valid_income_categories()
+        if tipo == MOVEMENT_TYPE_INCOME
+        else _valid_expense_categories()
+    )
     if categoria not in valid_categories:
         raise ValueError("Categoría inválida para el tipo de movimiento.")
 
@@ -79,7 +91,11 @@ def update_movement(movement_id: str, updates: dict[str, Any]) -> bool:
     if "tipo" in payload:
         tipo = str(payload["tipo"])
         categoria = str(payload.get("categoria", movement.get("categoria", "")))
-        valid = INCOME_CATEGORIES if tipo == MOVEMENT_TYPE_INCOME else EXPENSE_CATEGORIES
+        valid = (
+            _valid_income_categories()
+            if tipo == MOVEMENT_TYPE_INCOME
+            else _valid_expense_categories()
+        )
         if categoria not in valid:
             raise ValueError("Categoría inválida para el tipo de movimiento.")
 

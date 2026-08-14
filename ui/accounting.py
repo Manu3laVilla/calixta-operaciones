@@ -8,8 +8,6 @@ import pandas as pd
 import streamlit as st
 
 from config import (
-    EXPENSE_CATEGORIES,
-    INCOME_CATEGORIES,
     MOVEMENT_TYPE_EXPENSE,
     MOVEMENT_TYPE_INCOME,
     MOVEMENT_TYPES,
@@ -23,7 +21,7 @@ from services.accounting_service import (
     summary_totals,
     update_movement,
 )
-from ui.cached_data import load_movements
+from ui.cached_data import load_expense_types, load_income_types, load_movements
 from ui.charts import (
     PLOTLY_CONFIG,
     accounting_by_category_chart,
@@ -154,6 +152,20 @@ def _tab_resumen() -> None:
                     st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
 
+def _income_categories() -> list[str]:
+    df = load_income_types(active_only=True)
+    if df.empty:
+        return ["Capital", "Inversión", "Otros ingresos"]
+    return [str(name) for name in df["nombre"].tolist()]
+
+
+def _expense_categories() -> list[str]:
+    df = load_expense_types(active_only=True)
+    if df.empty:
+        return ["Insumos", "Equipos", "Otros gastos"]
+    return [str(name) for name in df["nombre"].tolist()]
+
+
 def _movement_form(
     *,
     form_key: str,
@@ -161,7 +173,7 @@ def _movement_form(
     movement_tipo: str,
     category_label: str,
 ) -> None:
-    categories = INCOME_CATEGORIES if movement_tipo == MOVEMENT_TYPE_INCOME else EXPENSE_CATEGORIES
+    categories = _income_categories() if movement_tipo == MOVEMENT_TYPE_INCOME else _expense_categories()
     with st.form(form_key, clear_on_submit=True):
         c1, c2 = st.columns(2)
         fecha = c1.date_input("Fecha del movimiento *", value=date.today())
@@ -239,7 +251,7 @@ def _tab_editar_movimiento() -> None:
             MOVEMENT_TYPES,
             index=MOVEMENT_TYPES.index(str(current.get("tipo", MOVEMENT_TYPE_INCOME))),
         )
-        cat_options = INCOME_CATEGORIES if tipo == MOVEMENT_TYPE_INCOME else EXPENSE_CATEGORIES
+        cat_options = _income_categories() if tipo == MOVEMENT_TYPE_INCOME else _expense_categories()
         current_cat = str(current.get("categoria", cat_options[0]))
         categoria = c2.selectbox(
             "Categoría *",

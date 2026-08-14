@@ -12,6 +12,7 @@ create extension if not exists "pgcrypto";
 -- ─────────────────────────────────────────────────────────────────────────────
 create type categoria_producto as enum ('Ropa', 'Accesorio');
 create type talla_producto as enum ('XS', 'S', 'M', 'L', 'XL', 'Talla Única');
+-- estado_pedido enum legacy (pedidos.estado es text → estados_pedido.nombre)
 create type estado_pedido as enum (
   'Recibido',
   'Pago Confirmado',
@@ -23,6 +24,33 @@ create type categoria_ingreso as enum ('Capital', 'Inversión', 'Otros ingresos'
 create type categoria_gasto as enum ('Insumos', 'Equipos', 'Otros gastos');
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- Tipos de producto (por categoría; administrables desde el módulo Administración)
+-- ─────────────────────────────────────────────────────────────────────────────
+create table public.tipos_producto (
+  id text primary key,
+  nombre text not null,
+  categoria categoria_producto not null,
+  activo boolean not null default true,
+  orden integer not null default 0,
+  fecha_registro timestamptz not null default now(),
+  constraint tipos_producto_nombre_por_categoria unique (categoria, nombre)
+);
+
+create index idx_tipos_producto_categoria on public.tipos_producto (categoria, activo, orden);
+
+insert into public.tipos_producto (id, nombre, categoria, orden) values
+  ('TPO-ROPA-CAM', 'Camiseta', 'Ropa', 10),
+  ('TPO-ROPA-CMS', 'Camisa', 'Ropa', 20),
+  ('TPO-ROPA-PAN', 'Pantalón', 'Ropa', 30),
+  ('TPO-ROPA-VES', 'Vestido', 'Ropa', 40),
+  ('TPO-ROPA-BLA', 'Blusa', 'Ropa', 50),
+  ('TPO-ACC-TBG', 'Totebag', 'Accesorio', 10),
+  ('TPO-ACC-PAN', 'Pañoleta', 'Accesorio', 20),
+  ('TPO-ACC-COL', 'Collar', 'Accesorio', 30),
+  ('TPO-ACC-ARE', 'Aretes', 'Accesorio', 40),
+  ('TPO-ACC-PUL', 'Pulsera', 'Accesorio', 50);
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- Productos
 -- ─────────────────────────────────────────────────────────────────────────────
 create table public.productos (
@@ -30,19 +58,87 @@ create table public.productos (
   referencia text not null,
   nombre text not null,
   color text not null default '',
-  talla talla_producto not null,
+  talla talla_producto,
   categoria categoria_producto not null,
+  tipo_id text not null references public.tipos_producto (id) on delete restrict,
   descripcion text not null default '',
   stock integer not null default 0 check (stock >= 0),
   stock_minimo integer not null default 0 check (stock_minimo >= 0),
   precio numeric(12, 2) not null default 0 check (precio >= 0),
   activo boolean not null default true,
-  fecha_registro timestamptz not null default now()
+  fecha_registro timestamptz not null default now(),
+  constraint productos_talla_por_categoria check (
+    (categoria = 'Ropa' and talla is not null)
+    or (categoria = 'Accesorio' and talla is null)
+  )
 );
 
 create index idx_productos_referencia on public.productos (referencia);
 create index idx_productos_activo on public.productos (activo);
 create index idx_productos_stock_minimo on public.productos (stock_minimo);
+create index idx_productos_tipo_id on public.productos (tipo_id);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Tipos de ingreso (contabilidad; administrables)
+-- ─────────────────────────────────────────────────────────────────────────────
+create table public.tipos_ingreso (
+  id text primary key,
+  nombre text not null unique,
+  activo boolean not null default true,
+  orden integer not null default 0,
+  fecha_registro timestamptz not null default now()
+);
+
+create index idx_tipos_ingreso_activo on public.tipos_ingreso (activo, orden);
+
+insert into public.tipos_ingreso (id, nombre) values
+  ('TIN-CAP', 'Capital'),
+  ('TIN-INV', 'Inversión'),
+  ('TIN-OTR', 'Otros ingresos');
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Tipos de gasto (contabilidad; administrables)
+-- ─────────────────────────────────────────────────────────────────────────────
+create table public.tipos_gasto (
+  id text primary key,
+  nombre text not null unique,
+  activo boolean not null default true,
+  fecha_registro timestamptz not null default now()
+);
+
+create index idx_tipos_gasto_activo on public.tipos_gasto (activo, nombre);
+
+insert into public.tipos_gasto (id, nombre) values
+  ('TGA-INS', 'Insumos'),
+  ('TGA-EQU', 'Equipos'),
+  ('TGA-OTR', 'Otros gastos');
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Estados de pedido (flujo configurable)
+-- ─────────────────────────────────────────────────────────────────────────────
+create table public.estados_pedido (
+  id text primary key,
+  nombre text not null unique,
+  activo boolean not null default true,
+  orden integer not null default 0,
+  genera_venta boolean not null default false,
+  revierte_venta boolean not null default false,
+  es_inicial boolean not null default false,
+  bloquea_edicion boolean not null default false,
+  fecha_registro timestamptz not null default now(),
+  constraint estados_pedido_flags_excluyentes check (not (genera_venta and revierte_venta))
+);
+
+create index idx_estados_pedido_activo on public.estados_pedido (activo, orden);
+
+insert into public.estados_pedido (
+  id, nombre, orden, genera_venta, revierte_venta, es_inicial, bloquea_edicion
+) values
+  ('EST-REC', 'Recibido', 10, false, false, true, false),
+  ('EST-PAG', 'Pago Confirmado', 20, false, false, false, false),
+  ('EST-ENV', 'Envío Agendado', 30, false, false, false, false),
+  ('EST-ENT', 'Entregado', 40, true, false, false, true),
+  ('EST-CAN', 'Cancelado', 50, false, true, false, true);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Clientes
@@ -67,7 +163,9 @@ create table public.pedidos (
   cliente_id text not null references public.clientes (id) on delete restrict,
   cliente_nombre text not null,
   total numeric(12, 2) not null default 0 check (total >= 0),
-  estado estado_pedido not null default 'Recibido',
+  estado text not null default 'Recibido' references public.estados_pedido (nombre) on delete restrict,
+  venta_registrada boolean not null default false,
+  stock_reservado boolean not null default false,
   direccion_entrega text not null,
   fecha_entrega timestamptz,
   fecha_creacion timestamptz not null default now(),
@@ -132,11 +230,7 @@ create table public.contabilidad (
   monto numeric(12, 2) not null check (monto > 0),
   notas text not null default '',
   fecha_registro timestamptz not null default now(),
-  fecha_actualizacion timestamptz not null default now(),
-  constraint contabilidad_categoria_valida check (
-    (tipo = 'Ingreso' and categoria in ('Capital', 'Inversión', 'Otros ingresos'))
-    or (tipo = 'Gasto' and categoria in ('Insumos', 'Equipos', 'Otros gastos'))
-  )
+  fecha_actualizacion timestamptz not null default now()
 );
 
 create index idx_contabilidad_fecha on public.contabilidad (fecha desc);
@@ -165,10 +259,49 @@ before update on public.contabilidad
 for each row
 execute function public.set_updated_at();
 
+create or replace function public.validar_producto_tipo_categoria()
+returns trigger
+language plpgsql
+as $$
+declare
+  tipo_categoria categoria_producto;
+begin
+  if new.tipo_id is null then
+    raise exception 'El producto debe tener un tipo asignado.';
+  end if;
+
+  select t.categoria
+  into tipo_categoria
+  from public.tipos_producto t
+  where t.id = new.tipo_id;
+
+  if tipo_categoria is null then
+    raise exception 'Tipo de producto inválido: %', new.tipo_id;
+  end if;
+
+  if tipo_categoria <> new.categoria then
+    raise exception
+      'El tipo % pertenece a %, pero el producto es %.',
+      new.tipo_id, tipo_categoria, new.categoria;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger trg_productos_validar_tipo
+before insert or update of tipo_id, categoria on public.productos
+for each row
+execute function public.validar_producto_tipo_categoria();
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Seguridad (RLS)
 -- App interna: acceso solo con service_role desde el backend (Python).
 -- ─────────────────────────────────────────────────────────────────────────────
+alter table public.tipos_producto enable row level security;
+alter table public.tipos_ingreso enable row level security;
+alter table public.tipos_gasto enable row level security;
+alter table public.estados_pedido enable row level security;
 alter table public.productos enable row level security;
 alter table public.clientes enable row level security;
 alter table public.pedidos enable row level security;
@@ -178,6 +311,22 @@ alter table public.contabilidad enable row level security;
 
 -- Políticas permisivas para el rol autenticado de servicio (service_role bypass RLS).
 -- Si más adelante usas auth de Supabase, restringe aquí por usuario.
+create policy "service_full_access_tipos_producto"
+  on public.tipos_producto for all
+  using (true) with check (true);
+
+create policy "service_full_access_tipos_ingreso"
+  on public.tipos_ingreso for all
+  using (true) with check (true);
+
+create policy "service_full_access_tipos_gasto"
+  on public.tipos_gasto for all
+  using (true) with check (true);
+
+create policy "service_full_access_estados_pedido"
+  on public.estados_pedido for all
+  using (true) with check (true);
+
 create policy "service_full_access_productos"
   on public.productos for all
   using (true) with check (true);

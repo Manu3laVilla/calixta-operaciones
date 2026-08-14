@@ -61,9 +61,22 @@ def create_sale_from_order(
         "referencia": producto.get("referencia", ""),
         "producto_nombre": producto.get("nombre", ""),
         "color": producto.get("color", ""),
-        "talla": producto.get("talla", ""),
+        "talla": producto.get("talla", "") or "",
         "cantidad": qty,
         "precio_unitario": float(precio_unitario),
         "subtotal": subtotal,
     }
     return get_db().insert(TABLE_VENTAS, sale)
+
+
+def delete_sales_by_pedido(pedido_id: str) -> int:
+    df = list_sales(pedido_id=pedido_id)
+    if df.empty:
+        return 0
+
+    db = get_db()
+    count = 0
+    for sale_id in df["id"].astype(str).tolist():
+        db.delete_by_id(TABLE_VENTAS, sale_id)
+        count += 1
+    return count
