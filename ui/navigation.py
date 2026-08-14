@@ -66,16 +66,6 @@ def _current_page() -> str:
     return current
 
 
-def _mobile_header_html(current: str) -> str:
-    menu_href = f"?p={current}&menu=1"
-    return f"""
-<div class="calixta-mobile-header-row">
-  <a class="calixta-mobile-menu-link" href="{menu_href}" aria-label="Abrir menú">☰</a>
-  <div class="calixta-mobile-header-logo">{_nav_logo_html()}</div>
-</div>
-"""
-
-
 def _nav_logo_html() -> str:
     encoded = base64.b64encode(Path(LOGO_PATH).read_bytes()).decode("ascii")
     return (
@@ -85,26 +75,18 @@ def _nav_logo_html() -> str:
     )
 
 
-def _open_mobile_menu_if_requested(current: str, alerts: int) -> None:
-    if _query_param("menu") != "1":
-        return
-    if "menu" in st.query_params:
-        del st.query_params["menu"]
-    _mobile_nav_dialog(current, alerts)
-
-
-@st.dialog("Menú")
-def _mobile_nav_dialog(current: str, alerts: int) -> None:
-    for _, page_id in NAV_ITEMS:
-        label = _nav_label(page_id, alerts)
-        if st.button(
-            label,
-            key=f"nav_dialog_btn_{page_id}",
-            type="primary" if page_id == current else "secondary",
-            use_container_width=True,
-        ):
-            _go_to_page(page_id)
-            st.rerun()
+def _render_mobile_nav_popover(current: str, alerts: int) -> None:
+    with st.popover("☰", help="Abrir menú", type="tertiary", key="nav_hamburger"):
+        for _, page_id in NAV_ITEMS:
+            label = _nav_label(page_id, alerts)
+            if st.button(
+                label,
+                key=f"nav_popover_btn_{page_id}",
+                type="primary" if page_id == current else "secondary",
+                use_container_width=True,
+            ):
+                _go_to_page(page_id)
+                st.rerun()
 
 
 def _render_nav_bar(current: str, alerts: int) -> None:
@@ -116,8 +98,21 @@ def _render_nav_bar(current: str, alerts: int) -> None:
             with logo_row[1]:
                 st.markdown(_nav_logo_html(), unsafe_allow_html=True)
 
-        with st.container(key="calixta_nav_mobile_header"):
-            st.markdown(_mobile_header_html(current), unsafe_allow_html=True)
+        with st.container(
+            key="calixta_nav_mobile_header",
+            horizontal=True,
+            vertical_alignment="center",
+            gap=None,
+        ):
+            _render_mobile_nav_popover(current, alerts)
+            st.markdown(
+                f'<div class="calixta-mobile-header-logo">{_nav_logo_html()}</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                '<div class="calixta-mobile-header-balance" aria-hidden="true">&nbsp;</div>',
+                unsafe_allow_html=True,
+            )
 
         with st.container(key="calixta_nav_desktop"):
             nav_row = st.columns(_NAV_ROW, gap="small", vertical_alignment="center")
@@ -133,8 +128,6 @@ def _render_nav_bar(current: str, alerts: int) -> None:
                             on_click=_go_to_page,
                             args=(page_id,),
                         )
-
-    _open_mobile_menu_if_requested(current, alerts)
 
 
 @contextmanager

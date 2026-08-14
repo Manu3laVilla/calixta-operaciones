@@ -32,57 +32,63 @@ _MOBILE_MENU_MARGIN_TOP = "26px"
 
 _MOBILE_HEADER_LAYOUT_CSS = f"""
     .st-key-calixta_nav_mobile_header {{
-        display: block !important;
-        height: auto !important;
-        min-height: 0 !important;
-        overflow: visible !important;
-        width: 100% !important;
-    }}
-
-    .st-key-calixta_nav_mobile_header [data-testid="stElementContainer"] {{
-        display: block !important;
-        height: auto !important;
-        overflow: visible !important;
-    }}
-
-    .calixta-mobile-header-row {{
-        display: grid !important;
-        grid-template-columns: 2.25rem 1fr 2.25rem !important;
-        align-items: start !important;
-        position: relative !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: flex-start !important;
         width: 100% !important;
         min-height: {_MOBILE_LOGO_HEIGHT} !important;
+        height: auto !important;
+        overflow: visible !important;
         margin-bottom: 0.1rem !important;
     }}
 
-    .calixta-mobile-header-row .calixta-mobile-menu-link {{
-        grid-column: 1 !important;
-        grid-row: 1 !important;
-        justify-self: start !important;
+    .st-key-calixta_nav_mobile_header .st-key-nav_hamburger {{
+        flex: 0 0 2.25rem !important;
+        width: 2.25rem !important;
+        max-width: 2.25rem !important;
         align-self: start !important;
         margin-top: {_MOBILE_MENU_MARGIN_TOP} !important;
-        font-size: 1.35rem !important;
-        line-height: 1 !important;
-        color: {OLIVE_DEEP} !important;
-        text-decoration: none !important;
-        padding: 0 0.15rem !important;
+        display: flex !important;
         z-index: 5 !important;
     }}
 
-    .calixta-mobile-header-row .calixta-mobile-menu-link:hover {{
-        color: {OLIVE_DARK} !important;
+    .st-key-calixta_nav_mobile_header .st-key-nav_hamburger [data-testid="stPopover"],
+    .st-key-calixta_nav_mobile_header .st-key-nav_hamburger .stButton,
+    .st-key-calixta_nav_mobile_header .st-key-nav_hamburger .stButton > button {{
+        margin: 0 !important;
+        padding: 0 0.1rem !important;
+        line-height: 1 !important;
+        width: auto !important;
+        min-width: auto !important;
     }}
 
-    .calixta-mobile-header-row .calixta-mobile-header-logo {{
-        grid-column: 1 / -1 !important;
-        grid-row: 1 !important;
-        justify-self: center !important;
+    .st-key-calixta_nav_mobile_header [data-testid="stElementContainer"]:has(.calixta-mobile-header-logo) {{
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-self: start !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }}
+
+    .st-key-calixta_nav_mobile_header [data-testid="stElementContainer"]:has(.calixta-mobile-header-balance) {{
+        flex: 0 0 2.25rem !important;
+        width: 2.25rem !important;
+        max-width: 2.25rem !important;
+        visibility: hidden !important;
+        align-self: start !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }}
+
+    .calixta-mobile-header-logo {{
         display: flex !important;
         justify-content: center !important;
         width: 100% !important;
     }}
 
-    .calixta-mobile-header-row .calixta-nav-logo img {{
+    .calixta-mobile-header-logo .calixta-nav-logo img {{
         width: {_MOBILE_LOGO_WIDTH_PX}px !important;
         max-width: {_MOBILE_LOGO_WIDTH_PX}px !important;
         height: auto !important;
@@ -91,7 +97,7 @@ _MOBILE_HEADER_LAYOUT_CSS = f"""
 """
 
 CALIXTA_CSS = f"""
-<style id="calixta-main-v25">
+<style id="calixta-main-v27">
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {{
@@ -672,7 +678,7 @@ iframe[title*="calixta_autocomplete"] {{
     border-radius: var(--r-md) !important;
 }}
 
-.calixta-mobile-header-row {{
+.calixta-mobile-header-logo {{
     display: none;
 }}
 
@@ -717,7 +723,7 @@ iframe[title*="calixta_autocomplete"] {{
 """
 
 CALIXTA_NAV_CSS = f"""
-<style id="calixta-nav-v25">
+<style id="calixta-nav-v27">
 .st-key-calixta_nav {{
     width: 100vw;
     max-width: 100vw;
