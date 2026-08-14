@@ -96,7 +96,7 @@ _MOBILE_HEADER_LAYOUT_CSS = f"""
 """
 
 CALIXTA_CSS = f"""
-<style id="calixta-main-v29">
+<style id="calixta-main-v33">
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {{
@@ -223,10 +223,11 @@ section[data-testid="stMain"] [data-testid="stElementContainer"]:has([data-testi
 .stat-chip {{
     background: var(--card);
     border-radius: var(--r-lg);
-    padding: 1.1rem 1rem;
+    padding: 1.5rem 1.25rem;
     box-shadow: var(--shadow-card);
     border: none;
     height: 100%;
+    min-height: 7rem;
 }}
 
 .stat-chip--olive {{ background: linear-gradient(160deg, rgba(130,143,89,0.14) 0%, var(--card) 70%); }}
@@ -302,9 +303,79 @@ section[data-testid="stMain"] [data-testid="stElementContainer"]:has([data-testi
     margin-bottom: 1rem;
 }}
 
-.metrics-charts-gap {{
+.dashboard-after-filters {{
     height: 1.25rem;
-    margin-bottom: 1.25rem;
+}}
+
+.st-key-dashboard_metrics {{
+    margin-top: 0.35rem !important;
+    margin-bottom: 0.65rem !important;
+}}
+
+.st-key-dashboard_metrics [data-testid="column"] {{
+    padding-left: 0.4rem !important;
+    padding-right: 0.4rem !important;
+}}
+
+.pdf-download-spacer {{
+    display: block;
+    height: 1.15rem;
+}}
+
+[class*="_pdf_wrap_center"] {{
+    margin: 0 0 0.85rem !important;
+    padding: 0 !important;
+}}
+
+[class*="_pdf_wrap_center"] [data-testid="stHorizontalBlock"] {{
+    width: 100% !important;
+}}
+
+[class*="_pdf_wrap"] [data-testid="stDownloadButton"],
+[class*="_pdf_wrap_center"] [data-testid="stDownloadButton"] {{
+    width: 100% !important;
+}}
+
+[class*="_pdf_wrap"] [data-testid="stDownloadButton"] > button,
+[class*="_pdf_wrap_center"] [data-testid="stDownloadButton"] > button {{
+    background: linear-gradient(135deg, rgba(130, 143, 89, 0.14) 0%, rgba(255, 255, 205, 0.52) 100%) !important;
+    border: 1.5px solid rgba(130, 143, 89, 0.38) !important;
+    color: var(--olive-deep) !important;
+    border-radius: var(--r-pill) !important;
+    font-weight: 600 !important;
+    font-size: 0.86rem !important;
+    letter-spacing: 0.01em !important;
+    padding: 0.58rem 1.45rem !important;
+    min-height: 2.65rem !important;
+    box-shadow: 0 2px 10px rgba(61, 64, 53, 0.07) !important;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease !important;
+    white-space: nowrap !important;
+}}
+
+[class*="_pdf_wrap"] [data-testid="stDownloadButton"] > button:hover,
+[class*="_pdf_wrap_center"] [data-testid="stDownloadButton"] > button:hover {{
+    background: linear-gradient(135deg, rgba(130, 143, 89, 0.24) 0%, rgba(255, 255, 205, 0.72) 100%) !important;
+    border-color: var(--olive) !important;
+    color: var(--olive-deep) !important;
+    transform: translateY(-1px) !important;
+}}
+
+[class*="_pdf_wrap"] [data-testid="stDownloadButton"] > button:active,
+[class*="_pdf_wrap_center"] [data-testid="stDownloadButton"] > button:active {{
+    transform: translateY(0) !important;
+}}
+
+[class*="_pdf_wrap"] {{
+    margin: 0.35rem 0 0.65rem !important;
+}}
+
+.metrics-charts-gap {{
+    height: 2rem;
+    margin-bottom: 2rem;
+}}
+
+.dashboard-pdf-gap {{
+    display: none;
 }}
 
 /* Sección de gráficos */
@@ -319,6 +390,11 @@ section[data-testid="stMain"] [data-testid="stElementContainer"]:has([data-testi
     border-radius: var(--r-lg);
     background: linear-gradient(135deg, rgba(255,255,205,0.35) 0%, rgba(247,195,198,0.22) 55%, rgba(240,199,193,0.18) 100%);
     border: 1px solid rgba(130, 143, 89, 0.1);
+}}
+
+.dashboard-section-title--tight {{
+    margin-top: 0.15rem !important;
+    margin-bottom: 1rem !important;
 }}
 
 .chart-empty-msg {{

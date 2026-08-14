@@ -61,13 +61,14 @@ def _stat_chip(label: str, value: str, detail: str, variant: str) -> None:
     )
 
 
-def stat_chips(items: list[tuple[str, str, str, str]]) -> None:
+def stat_chips(items: list[tuple[str, str, str, str]], *, bottom_gap: bool = True) -> None:
     """(etiqueta, valor, detalle, variante)."""
-    cols = st.columns(len(items), gap="small")
+    cols = st.columns(len(items), gap="medium")
     for col, (label, value, detail, variant) in zip(cols, items):
         with col:
             _stat_chip(label, value, detail, variant)
-    st.markdown('<div class="metrics-charts-gap" aria-hidden="true"></div>', unsafe_allow_html=True)
+    if bottom_gap:
+        st.markdown('<div class="metrics-charts-gap" aria-hidden="true"></div>', unsafe_allow_html=True)
 
 
 def summary_stats(items: list[tuple[str, str]]) -> None:

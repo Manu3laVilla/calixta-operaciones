@@ -21,6 +21,7 @@ from services.accounting_service import (
     summary_totals,
     update_movement,
 )
+from services.pdf_reports import report_accounting_movements, report_accounting_summary
 from ui.cached_data import load_expense_types, load_income_types, load_movements
 from ui.charts import (
     PLOTLY_CONFIG,
@@ -36,6 +37,7 @@ from ui.components import (
     search_select,
     stat_chips,
 )
+from ui.report_export import dated_filename, filter_line, pdf_download_button
 from ui.styles import format_cop
 
 
@@ -97,6 +99,24 @@ def _tab_resumen() -> None:
         ("Total gastos", format_cop(total_gastos), "sobre esos ingresos", "pink"),
         ("Balance contable", format_cop(balance), "ingresos − gastos", "olive"),
     ])
+
+    summary_filters = [
+        filter_line("Desde", fecha_desde),
+        filter_line("Hasta", fecha_hasta),
+    ] if fecha_desde and fecha_hasta else ["Sin filtro de fechas"]
+    pdf_download_button(
+        label="Descargar PDF del resumen",
+        file_name=dated_filename("reporte-contabilidad-resumen"),
+        builder=lambda: report_accounting_summary(
+            movements,
+            filters=summary_filters,
+            total_ingresos=total_ingresos,
+            total_gastos=total_gastos,
+            balance=balance,
+            category_summary=summary_by_category(movements),
+        ),
+        key="acc_summary_pdf",
+    )
 
     with panel_card("Por categoría", accent="cream"):
         summary = summary_by_category(movements)
@@ -318,6 +338,18 @@ def _tab_movimientos() -> None:
     )
 
     with panel_card("Historial de movimientos", accent="cream"):
+        movement_filters = [
+            filter_line("Tipo", tipo_filter),
+            filter_line("Desde", fecha_desde),
+            filter_line("Hasta", fecha_hasta),
+        ]
+        pdf_download_button(
+            label="Descargar PDF de movimientos",
+            file_name=dated_filename("reporte-contabilidad-movimientos"),
+            builder=lambda: report_accounting_movements(movements, filters=movement_filters),
+            key="acc_movements_pdf",
+        )
+
         if movements.empty:
             st.info("No hay movimientos en el período seleccionado.")
             return

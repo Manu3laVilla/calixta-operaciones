@@ -22,6 +22,13 @@ from services.order_service import (
     update_order,
     update_order_status,
 )
+from services.pdf_reports import (
+    report_alerts_stock,
+    report_dashboard,
+    report_inventory,
+    report_orders,
+    report_sales,
+)
 from services.product_service import create_product, product_label, update_product
 from services.supabase_db import get_db
 from ui.cached_data import (
@@ -55,6 +62,7 @@ from ui.charts import (
     sales_by_category_donut,
     top_products_chart,
 )
+from ui.report_export import dated_filename, filter_line, pdf_download_button
 from ui.styles import CALIXTA_CSS, CALIXTA_MODULE_TABS_CSS, CALIXTA_NAV_CSS, format_cop
 
 _PAGE_ICON = "assets/calixta-icon.png"
@@ -353,6 +361,8 @@ def page_dashboard() -> None:
 
     fecha_desde, fecha_hasta, categoria, estado = _dashboard_filters(sales_all, orders_all)
 
+    st.markdown('<div class="dashboard-after-filters" aria-hidden="true"></div>', unsafe_allow_html=True)
+
     sales = _filter_sales_df(
         sales_all, products,
         fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, categoria=categoria,
@@ -374,14 +384,45 @@ def page_dashboard() -> None:
         delivered = 0
         pending_orders = len(orders) if not orders.empty else 0
 
-    stat_chips([
-        ("Ingresos", format_cop(total_revenue), "en el período", "terra"),
-        ("Unidades vendidas", str(units_sold), "productos entregados", "olive"),
-        ("Pedidos", str(len(orders)), f"{pending_orders} activos · {delivered} entregados", "sage"),
-        ("Alertas stock", str(len(alerts)), "inventario actual", "pink"),
-    ])
+    with st.container(key="dashboard_metrics"):
+        stat_chips([
+            ("Ingresos", format_cop(total_revenue), "en el período", "terra"),
+            ("Unidades vendidas", str(units_sold), "productos entregados", "olive"),
+            ("Pedidos", str(len(orders)), f"{pending_orders} activos · {delivered} entregados", "sage"),
+            ("Alertas stock", str(len(alerts)), "inventario actual", "pink"),
+        ], bottom_gap=False)
 
-    st.markdown('<p class="dashboard-section-title">Resumen visual</p>', unsafe_allow_html=True)
+    dashboard_filters = [
+        filter_line("Desde", fecha_desde),
+        filter_line("Hasta", fecha_hasta),
+        filter_line("Categoría", categoria),
+        filter_line("Estado pedido", estado),
+    ]
+    sort_col = "fecha_creacion" if not orders.empty and "fecha_creacion" in orders.columns else "id"
+    recent_orders = (
+        orders.sort_values(sort_col, ascending=False).head(5)
+        if not orders.empty
+        else orders
+    )
+    pdf_download_button(
+        label="Descargar PDF del resumen operativo",
+        file_name=dated_filename("reporte-operativo"),
+        builder=lambda: report_dashboard(
+            filters=dashboard_filters,
+            total_revenue=total_revenue,
+            units_sold=units_sold,
+            orders_count=len(orders),
+            pending_orders=pending_orders,
+            delivered=delivered,
+            alerts_count=len(alerts),
+            recent_orders=recent_orders,
+            alerts=alerts,
+        ),
+        key="dashboard_pdf",
+        centered=True,
+    )
+
+    st.markdown('<p class="dashboard-section-title dashboard-section-title--tight">Resumen visual</p>', unsafe_allow_html=True)
 
     row1_left, row1_right = st.columns(2, gap="medium")
     row2_left, row2_right = st.columns(2, gap="medium")
@@ -484,6 +525,12 @@ def page_products() -> None:
             if products.empty:
                 st.info("No hay productos registrados.")
             else:
+                pdf_download_button(
+                    label="Descargar PDF de inventario",
+                    file_name=dated_filename("reporte-inventario"),
+                    builder=lambda p=products: report_inventory(p),
+                    key="products_pdf",
+                )
                 display = products.copy()
                 if "precio" in display.columns:
                     display["precio"] = display["precio"].apply(format_cop)
@@ -703,6 +750,12 @@ def page_orders() -> None:
             if orders.empty:
                 st.info("No hay pedidos registrados.")
             else:
+                pdf_download_button(
+                    label="Descargar PDF de pedidos",
+                    file_name=dated_filename("reporte-pedidos"),
+                    builder=lambda o=orders: report_orders(o),
+                    key="orders_pdf",
+                )
                 display = orders.drop(columns=["items_json"], errors="ignore").copy()
                 if "total" in display.columns:
                     display["total"] = display["total"].apply(format_cop)
@@ -974,11 +1027,29 @@ def page_sales() -> None:
         )
 
         with panel_card("Historial de ventas", accent="olive"):
+            sales_filters = [
+                filter_line("Cliente", None if cliente_filter == "Todos" else cliente_filter),
+                filter_line("Producto", None if producto_filter == "Todos" else producto_filter),
+                filter_line("Pedido", pedido_filter or None),
+                filter_line("Desde", fecha_desde_val if use_date_filter else None),
+                filter_line("Hasta", fecha_hasta_val if use_date_filter else None),
+            ]
+            if not use_date_filter:
+                sales_filters.append("Rango de fechas: no aplicado")
+
             if filtered.empty:
                 st.info("No hay ventas que coincidan con los filtros.")
             else:
                 total = float(filtered["subtotal"].sum())
                 st.metric("Total filtrado", format_cop(total))
+                pdf_download_button(
+                    label="Descargar PDF de ventas",
+                    file_name=dated_filename("reporte-ventas"),
+                    builder=lambda f=filtered.copy(), t=total, sf=sales_filters: report_sales(
+                        f, filters=sf, total=t
+                    ),
+                    key="sales_pdf",
+                )
                 display = filtered.copy()
                 display["precio_unitario"] = display["precio_unitario"].apply(format_cop)
                 display["subtotal"] = display["subtotal"].apply(format_cop)
@@ -1045,6 +1116,12 @@ def page_alerts() -> None:
                     calixta_table(near_display, key="alerts_near_min", paginate=False)
             else:
                 st.warning(f"{len(alerts)} producto(s) por debajo del stock mínimo.")
+                pdf_download_button(
+                    label="Descargar PDF de alertas",
+                    file_name=dated_filename("reporte-alertas-stock"),
+                    builder=lambda a=alerts.copy(): report_alerts_stock(a),
+                    key="alerts_pdf",
+                )
                 display = alerts.copy()
                 display["precio"] = display["precio"].apply(format_cop)
                 calixta_table(
