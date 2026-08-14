@@ -75,18 +75,18 @@ def _nav_logo_html() -> str:
     )
 
 
-def _render_mobile_nav_popover(current: str, alerts: int) -> None:
-    with st.popover("☰", help="Abrir menú", type="tertiary", key="nav_hamburger"):
-        for _, page_id in NAV_ITEMS:
-            label = _nav_label(page_id, alerts)
-            if st.button(
-                label,
-                key=f"nav_popover_btn_{page_id}",
-                type="primary" if page_id == current else "secondary",
-                use_container_width=True,
-            ):
-                _go_to_page(page_id)
-                st.rerun()
+@st.dialog("Menú")
+def _mobile_nav_dialog(current: str, alerts: int) -> None:
+    for _, page_id in NAV_ITEMS:
+        label = _nav_label(page_id, alerts)
+        if st.button(
+            label,
+            key=f"nav_dialog_btn_{page_id}",
+            type="primary" if page_id == current else "secondary",
+            use_container_width=True,
+        ):
+            _go_to_page(page_id)
+            st.rerun()
 
 
 def _render_nav_bar(current: str, alerts: int) -> None:
@@ -104,7 +104,8 @@ def _render_nav_bar(current: str, alerts: int) -> None:
             vertical_alignment="center",
             gap=None,
         ):
-            _render_mobile_nav_popover(current, alerts)
+            if st.button("☰", key="nav_hamburger", help="Abrir menú", type="tertiary"):
+                _mobile_nav_dialog(current, alerts)
             st.markdown(
                 f'<div class="calixta-mobile-header-logo">{_nav_logo_html()}</div>',
                 unsafe_allow_html=True,

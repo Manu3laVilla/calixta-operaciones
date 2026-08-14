@@ -52,7 +52,6 @@ _MOBILE_HEADER_LAYOUT_CSS = f"""
         z-index: 5 !important;
     }}
 
-    .st-key-calixta_nav_mobile_header .st-key-nav_hamburger [data-testid="stPopover"],
     .st-key-calixta_nav_mobile_header .st-key-nav_hamburger .stButton,
     .st-key-calixta_nav_mobile_header .st-key-nav_hamburger .stButton > button {{
         margin: 0 !important;
@@ -97,7 +96,7 @@ _MOBILE_HEADER_LAYOUT_CSS = f"""
 """
 
 CALIXTA_CSS = f"""
-<style id="calixta-main-v27">
+<style id="calixta-main-v28">
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {{
@@ -723,7 +722,7 @@ iframe[title*="calixta_autocomplete"] {{
 """
 
 CALIXTA_NAV_CSS = f"""
-<style id="calixta-nav-v27">
+<style id="calixta-nav-v28">
 .st-key-calixta_nav {{
     width: 100vw;
     max-width: 100vw;
