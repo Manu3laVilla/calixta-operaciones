@@ -10,9 +10,9 @@ import streamlit as st
 
 from app_config import CATEGORIES, SIZES
 from services.catalog_service import product_type_options
+from services.email_service import alert_recipient, is_email_configured
 from services.alert_service import notify_low_stock_by_email
 from services.customer_service import create_customer, update_customer
-from services.email_service import alert_recipient, is_email_configured
 from services.order_service import (
     create_order,
     delete_order,
