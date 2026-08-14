@@ -45,7 +45,7 @@ from ui.charts import (
     sales_by_category_donut,
     top_products_chart,
 )
-from ui.styles import CALIXTA_CSS, CALIXTA_MODULE_TABS_CSS, format_cop
+from ui.styles import CALIXTA_CSS, CALIXTA_MODULE_TABS_CSS, CALIXTA_NAV_CSS, format_cop
 
 _PAGE_ICON = "assets/calixta-icon.png"
 
@@ -57,6 +57,7 @@ st.set_page_config(
 )
 
 st.markdown(CALIXTA_CSS, unsafe_allow_html=True)
+st.markdown(CALIXTA_NAV_CSS, unsafe_allow_html=True)
 st.markdown(CALIXTA_MODULE_TABS_CSS, unsafe_allow_html=True)
 
 

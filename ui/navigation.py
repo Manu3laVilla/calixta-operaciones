@@ -8,41 +8,12 @@ from typing import Generator
 import streamlit as st
 
 from ui.cached_data import clear_data_cache, load_low_stock_alerts
-from ui.styles import CALIXTA_NAV_CSS
 from ui.theme import LOGO_PATH, NAV_ITEMS
+
 PAGE_IDS = [page_id for _, page_id in NAV_ITEMS]
 
 _LOGO_ROW = [1, 1.35, 1]
-_NAV_ROW = [0.1, 7.8, 0.38]
-
-# Espaciado del header — inyectado aquí para que Streamlit cargue siempre la versión actual.
-NAV_SPACING_CSS = """
-<style id="calixta-nav-spacing">
-section[data-testid="stMain"] .block-container > div:first-child {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-.st-key-calixta_nav {
-    margin-top: 0 !important;
-    padding-top: 0.35rem !important;
-    overflow: visible !important;
-}
-.st-key-calixta_nav [data-testid="stElementContainer"]:has(.calixta-nav-root) {
-    display: none !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-.st-key-calixta_nav .calixta-nav-logo {
-    margin-bottom: 1.1rem !important;
-    overflow: visible !important;
-}
-.st-key-calixta_nav .calixta-nav-logo img {
-    overflow: visible !important;
-}
-</style>
-"""
+_NAV_ROW = [0.5, 11, 0.5]
 
 
 def _alert_count() -> int:
@@ -64,10 +35,6 @@ def _nav_label(page_id: str, alerts: int) -> str:
 def _go_to_page(page_id: str) -> None:
     st.session_state.nav_page = page_id
     st.query_params["p"] = page_id
-
-
-def _refresh_data() -> None:
-    clear_data_cache()
 
 
 def _query_param(key: str) -> str | None:
@@ -115,8 +82,8 @@ def _render_nav_bar(current: str, alerts: int) -> None:
         logo_row = st.columns(_LOGO_ROW, gap="small")
         with logo_row[1]:
             st.markdown(_nav_logo_html(), unsafe_allow_html=True)
-        nav_row = st.columns(_NAV_ROW, gap="small", vertical_alignment="center")
 
+        nav_row = st.columns(_NAV_ROW, gap="small", vertical_alignment="center")
         with nav_row[1]:
             tab_cols = st.columns([1] * len(NAV_ITEMS), gap="medium")
             for col, (_, page_id) in zip(tab_cols, NAV_ITEMS):
@@ -129,17 +96,6 @@ def _render_nav_bar(current: str, alerts: int) -> None:
                         on_click=_go_to_page,
                         args=(page_id,),
                     )
-
-        with nav_row[2]:
-            st.button(
-                "↻",
-                key="nav_refresh",
-                help="Actualizar datos",
-                on_click=_refresh_data,
-            )
-
-    st.markdown(CALIXTA_NAV_CSS, unsafe_allow_html=True)
-    st.markdown(NAV_SPACING_CSS, unsafe_allow_html=True)
 
 
 @contextmanager

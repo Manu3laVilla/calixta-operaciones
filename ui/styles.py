@@ -361,8 +361,8 @@ section[data-testid="stMain"] [data-testid="stElementContainer"]:has([data-testi
 
 /* Page hero (otras páginas) */
 .page-hero {{
-    margin-bottom: 1rem;
-    padding: 0.15rem 0.35rem;
+    margin-bottom: 0.35rem;
+    padding: 0 0.35rem 0;
 }}
 .page-title {{
     font-size: 1.65rem;
@@ -438,8 +438,8 @@ CALIXTA_NAV_CSS = f"""
     margin-left: calc(50% - 50vw);
     margin-right: calc(50% - 50vw);
     margin-top: 0;
-    padding: 0.35rem 1.5rem 0.45rem;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0;
+    padding: 0.35rem 1.5rem 0.15rem;
     box-sizing: border-box;
 }}
 
@@ -483,10 +483,6 @@ CALIXTA_NAV_CSS = f"""
     justify-content: center !important;
     gap: 0.35rem !important;
     flex-wrap: nowrap !important;
-}}
-
-.st-key-calixta_nav [data-testid="stHorizontalBlock"]:has(.st-key-nav_refresh) {{
-    align-items: center !important;
 }}
 
 .st-key-calixta_nav [class*="st-key-nav_btn_"] {{
@@ -547,40 +543,9 @@ CALIXTA_NAV_CSS = f"""
     text-decoration-color: {OLIVE_DARK} !important;
 }}
 
-.st-key-calixta_nav .st-key-nav_refresh {{
-    flex: 0 0 auto !important;
-    width: auto !important;
-    min-width: 2rem !important;
-}}
-
-.st-key-calixta_nav .st-key-nav_refresh .stButton {{
-    margin: 0 !important;
-}}
-
-.st-key-calixta_nav .st-key-nav_refresh .stButton > button {{
-    width: 2rem !important;
-    min-width: 2rem !important;
-    height: 2rem !important;
-    min-height: 2rem !important;
-    padding: 0 !important;
-    border-radius: 50% !important;
-    background: transparent !important;
-    border: 1px solid rgba(130, 143, 89, 0.16) !important;
-    color: {OLIVE_DARK} !important;
-    box-shadow: none !important;
-    font-size: 0.92rem !important;
-    font-weight: 400 !important;
-}}
-
-.st-key-calixta_nav .st-key-nav_refresh .stButton > button:hover {{
-    background: rgba(247, 195, 198, 0.22) !important;
-    border-color: rgba(130, 143, 89, 0.28) !important;
-    color: {OLIVE_DEEP} !important;
-}}
-
 @media (max-width: 1100px) {{
     .st-key-calixta_nav {{
-        padding: 0.25rem 0.85rem 0.5rem;
+        padding: 0.25rem 0.85rem 0.15rem;
     }}
 
     .st-key-calixta_nav [class*="st-key-nav_btn_"] .stButton > button {{
@@ -592,7 +557,7 @@ CALIXTA_NAV_CSS = f"""
 
 @media (max-width: 768px) {{
     .st-key-calixta_nav {{
-        padding: 0.2rem 0.55rem 0.45rem;
+        padding: 0.2rem 0.55rem 0.1rem;
     }}
 
     .st-key-calixta_nav [data-testid="stHorizontalBlock"]:has([class*="st-key-nav_btn_"]) {{
@@ -611,6 +576,38 @@ CALIXTA_NAV_CSS = f"""
         font-size: 0.7rem !important;
         padding: 0.34rem 0.55rem !important;
     }}
+}}
+
+/* Ocultar botón refresh legacy */
+.st-key-nav_refresh,
+[class*="st-key-nav_refresh"] {{
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}}
+
+/* Menú → contenido: menos aire */
+section[data-testid="stMain"] .block-container {{
+    gap: 0.2rem !important;
+}}
+
+section[data-testid="stMain"] .block-container > [data-testid="stVerticalBlock"] {{
+    gap: 0.25rem !important;
+}}
+
+section[data-testid="stMain"] [data-testid="stVerticalBlock"]:has(.st-key-calixta_nav) {{
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    gap: 0.2rem !important;
+}}
+
+.st-key-calixta_nav + [data-testid="stElementContainer"],
+.st-key-calixta_nav ~ [data-testid="stElementContainer"] {{
+    margin-top: 0 !important;
+    padding-top: 0 !important;
 }}
 </style>
 """
